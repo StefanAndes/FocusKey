@@ -1,0 +1,136 @@
+# FocusKey - Product Requirements Document
+
+## Project Overview
+FocusKey is a productivity app designed to reduce distractions from social media and other apps by leveraging Apple's Screen Time APIs. The goal is to let users enter a focused state (for work, study, sleep, etc.) during which selected distracting apps and websites are temporarily blocked or limited. The key differentiator is a physical NFC card or stand that acts as a trigger: when the user taps their iPhone on the FocusKey card, the app will activate a focus session and immediately apply restrictions to the user's device.
+
+## Core Features
+
+### 1. NFC-Triggered Focus Sessions
+- Physical NFC card/stand triggers focus mode via Universal Link
+- Tap to start focus session, tap again to end or initiate break
+- Works passively on iPhone Xs or later (background NFC reading)
+- Fallback manual "Start" button for older devices
+
+### 2. App & Website Blocking via Screen Time API
+- Integration with FamilyControls, ManagedSettings, and DeviceActivity frameworks
+- FamilyActivityPicker for user-friendly app/website selection
+- Shield UI prevents access to blocked apps during focus sessions
+- Support for individual apps, categories, and web domains
+
+### 3. Focus Presets
+- Pre-configured profiles: Work, Study, Sleep
+- Customizable blocking rules for each preset
+- Work: Blocks social media, news, games; allows productivity apps
+- Study: Blocks social media, games, messaging; allows educational content
+- Sleep: Blocks all apps except calls/meditation apps
+
+### 4. Session Management
+- Start/stop focus sessions on-demand or via schedule
+- Break system: short intervals when restrictions are lifted (e.g., 5 min/hour)
+- Session timer with progress feedback
+- Live Activity on lock screen showing focus progress
+
+### 5. Session Tracking & Analytics
+- Local storage of session history (start/end times, duration, breaks taken)
+- Session statistics and progress visualization
+- Privacy-first: all data stored locally unless user opts into cloud sync
+
+## Technical Requirements
+
+### Platform & Frameworks
+- **Platform**: iOS 17+
+- **Language**: Swift
+- **UI Framework**: SwiftUI
+- **Architecture**: MVVM pattern
+- **Key APIs**: 
+  - FamilyControls (authorization & app selection)
+  - ManagedSettings (enforcement/blocking)
+  - DeviceActivity (scheduling & monitoring)
+  - CoreNFC (for NFC trigger detection)
+
+### Required Entitlements
+- `com.apple.developer.family-controls` (privileged entitlement from Apple)
+- Associated Domains for Universal Links
+- App Groups for data sharing between app and extensions
+
+### Data Storage
+- **Local**: SwiftData/Core Data for structured data (profiles, sessions)
+- **App Group**: Shared storage for app/extension communication
+- **Optional Cloud**: Supabase or CloudKit for cross-device sync
+
+### Extensions
+- DeviceActivityMonitor extension for background enforcement
+- Optional Shield Action extension for custom blocking UI
+
+## User Stories
+
+### Core User Journey
+1. **Setup**: User grants Screen Time permission and selects apps to block
+2. **Configure**: User customizes focus presets (Work/Study/Sleep)
+3. **Focus**: User taps NFC card to start focus session
+4. **Block**: Distracting apps show Screen Time shield when accessed
+5. **Progress**: User sees focus timer/progress via Live Activity
+6. **End**: User taps NFC card again or lets session expire naturally
+7. **Review**: User views session stats and focus history
+
+### Detailed User Stories
+- As a student, I want to block social media apps during study sessions so I can focus on learning
+- As a professional, I want scheduled focus blocks during work hours to minimize distractions
+- As someone with sleep issues, I want evening app blocks to reduce screen time before bed
+- As a productivity enthusiast, I want physical NFC triggers to make starting focus sessions feel intentional
+- As a privacy-conscious user, I want all my usage data stored locally on my device
+
+## Success Criteria
+- Users can successfully block distracting apps using NFC triggers
+- 90%+ session completion rate (users don't bypass blocks frequently)
+- Positive user feedback on the physical NFC trigger experience
+- App Store approval with Screen Time entitlements
+- Zero crashes during focus sessions
+- Fast NFC response time (<2 seconds from tap to activation)
+
+## Technical Milestones
+
+### Phase 1: Core Foundation
+- [ ] Screen Time API integration and authorization flow
+- [ ] Basic app/website selection using FamilyActivityPicker
+- [ ] ManagedSettings shield implementation
+- [ ] Simple focus session start/stop functionality
+
+### Phase 2: NFC Integration
+- [ ] Universal Link setup and NFC tag configuration
+- [ ] NFC trigger detection and session management
+- [ ] Lock/unlock behavior for repeated NFC taps
+
+### Phase 3: Enhanced Features
+- [ ] Focus presets (Work/Study/Sleep) with default configurations
+- [ ] Session timer and progress tracking
+- [ ] Live Activities for lock screen feedback
+- [ ] Break system implementation
+
+### Phase 4: Data & Extensions
+- [ ] Local data storage with SwiftData
+- [ ] DeviceActivityMonitor extension for background enforcement
+- [ ] Session history and analytics
+- [ ] Optional cloud sync preparation
+
+## Privacy & Security
+- All blocking happens on-device via Apple's APIs
+- Usage data stored locally unless user opts into cloud sync
+- No tracking of specific app usage content
+- Transparent about data collection in privacy policy
+- Compliance with Apple's Screen Time API guidelines
+
+## Constraints & Assumptions
+- Requires iOS 17+ for latest SwiftUI and Screen Time API features
+- NFC functionality limited to iPhone Xs and later
+- Must obtain privileged Screen Time entitlement from Apple
+- Shield bypass is possible by determined users (by design for self-discipline)
+- Web blocking only works in Safari and WebKit-based browsers
+
+## Future Enhancements
+- Apple Watch companion app for session control
+- Widgets for quick session status and controls
+- Social features (focus streaks, challenges)
+- Integration with Calendar for automatic scheduled sessions
+- Advanced analytics and insights
+- Multiple NFC cards for different presets 

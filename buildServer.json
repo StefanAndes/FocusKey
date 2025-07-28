@@ -1,0 +1,19 @@
+{
+	"name": "xcode build server",
+	"version": "0.2",
+	"bspVersion": "2.0",
+	"languages": [
+		"c",
+		"cpp",
+		"objective-c",
+		"objective-cpp",
+		"swift"
+	],
+	"argv": [
+		"/opt/homebrew/bin/xcode-build-server"
+	],
+	"workspace": "/Users/stefanandelkovic/Documents/Projects/Test2/FocusKey/FocusKey.xcodeproj/project.xcworkspace",
+	"build_root": "/Users/stefanandelkovic/Library/Developer/Xcode/DerivedData/FocusKey-haaspatlswerncbsfgwdnshnddih",
+	"scheme": "FocusKey",
+	"kind": "xcode"
+}

@@ -1,0 +1,18 @@
+{
+  "project": {
+    "name": "FocusKey",
+    "description": "iOS app project - FocusKey",
+    "type": "ios",
+    "language": "swift"
+  },
+  "models": {
+    "main": "claude-4",
+    "research": "perplexity/sonar-pro",
+    "fallback": "gpt-o3"
+  },
+  "settings": {
+    "max_tasks": 50,
+    "auto_save": true,
+    "task_template": "detailed"
+  }
+} 

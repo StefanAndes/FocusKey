@@ -1,0 +1,29 @@
+# Project Requirements Document Template
+
+## Project Overview
+Brief description of what you're building and why.
+
+## Core Features
+List the main features your project should have:
+- Feature 1: Description
+- Feature 2: Description
+- Feature 3: Description
+
+## Technical Requirements
+- Platform/Framework: 
+- Language: 
+- Database: 
+- APIs: 
+- Performance requirements: 
+
+## User Stories
+As a [user type], I want [functionality] so that [benefit].
+
+## Success Criteria
+How will you know the project is successful?
+
+## Timeline
+What are the key milestones and deadlines?
+
+## Resources
+What resources (APIs, libraries, documentation) will you need? 
