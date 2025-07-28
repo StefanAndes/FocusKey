@@ -6,6 +6,9 @@
 //
 
 import SwiftUI
+import FamilyControls
+import ManagedSettings
+import DeviceActivity
 
 @main
 struct FocusKeyApp: App {
