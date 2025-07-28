@@ -1,0 +1,21 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "TEAMID.com.yourcompany.FocusKey",
+        "paths": [
+          "/start",
+          "/toggle", 
+          "/break",
+          "/start/*",
+          "/toggle/*",
+          "/break/*"
+        ]
+      }
+    ]
+  },
+  "webcredentials": {
+    "apps": ["TEAMID.com.yourcompany.FocusKey"]
+  }
+} 

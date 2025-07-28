@@ -8,5 +8,9 @@
     <true/>
     <key>com.apple.developer.family-controls</key>
     <true/>
+    <key>com.apple.developer.associated-domains</key>
+    <array>
+        <string>applinks:focuskey.app</string>
+    </array>
 </dict>
 </plist>

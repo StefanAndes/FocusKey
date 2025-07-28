@@ -8,6 +8,7 @@
 import SwiftUI
 #if os(iOS)
 import FamilyControls
+import UIKit
 #endif
 
 struct ContentView: View {
@@ -784,15 +785,209 @@ struct HistoryView: View {
 }
 
 struct SettingsView: View {
+    @EnvironmentObject var sessionManager: FocusSessionManager
+    
     var body: some View {
         NavigationView {
-            VStack {
-                Text("Settings")
-                    .font(.title)
-                Text("App settings coming soon...")
-                    .foregroundColor(.secondary)
+            List {
+                Section("NFC Testing") {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Test NFC triggers without physical cards")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                        
+                        VStack(spacing: 8) {
+                            Button("🚀 Simulate NFC Start") {
+                                simulateUniversalLink(path: "/start")
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(Color.blue.opacity(0.1))
+                            .foregroundColor(.blue)
+                            .cornerRadius(8)
+                            
+                            Button("🔄 Simulate NFC Toggle") {
+                                simulateUniversalLink(path: "/toggle")
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(Color.green.opacity(0.1))
+                            .foregroundColor(.green)
+                            .cornerRadius(8)
+                            
+                            Button("☕ Simulate NFC Break") {
+                                simulateUniversalLink(path: "/break")
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(Color.orange.opacity(0.1))
+                            .foregroundColor(.orange)
+                            .cornerRadius(8)
+                        }
+                    }
+                    .padding(.vertical, 8)
+                }
+                
+                Section("App Information") {
+                    InfoRow(title: "Version", value: "1.0.0 (Beta)")
+                    InfoRow(title: "Build", value: "1")
+                    InfoRow(title: "Screen Time", 
+                           value: sessionManager.isAuthorized ? "Authorized" : "Not Authorized")
+                }
+                
+                Section("NFC Setup Instructions") {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Physical NFC Card Setup")
+                            .font(.headline)
+                            .fontWeight(.semibold)
+                        
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack(alignment: .top) {
+                                Text("1.")
+                                    .fontWeight(.medium)
+                                    .frame(width: 20, alignment: .leading)
+                                Text("Get an NFC card/tag (NTAG213 or similar)")
+                            }
+                            
+                            HStack(alignment: .top) {
+                                Text("2.")
+                                    .fontWeight(.medium)
+                                    .frame(width: 20, alignment: .leading)
+                                Text("Write URL: https://focuskey.app/toggle")
+                            }
+                            
+                            HStack(alignment: .top) {
+                                Text("3.")
+                                    .fontWeight(.medium)
+                                    .frame(width: 20, alignment: .leading)
+                                Text("Tap card on iPhone to trigger focus")
+                            }
+                            
+                            HStack(alignment: .top) {
+                                Text("4.")
+                                    .fontWeight(.medium)
+                                    .frame(width: 20, alignment: .leading)
+                                Text("Works on iPhone Xs and later")
+                            }
+                        }
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                    }
+                    .padding(.vertical, 8)
+                }
+                
+                Section("About") {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("FocusKey helps you stay focused by blocking distracting apps using Apple's Screen Time APIs.")
+                        
+                        Text("All data stays on your device. No tracking, no cloud storage without your permission.")
+                            .font(.footnote)
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(.vertical, 8)
+                }
             }
             .navigationTitle("Settings")
+        }
+    }
+    
+    private func simulateUniversalLink(path: String) {
+        guard let url = URL(string: "https://focuskey.app\(path)") else { return }
+        
+        print("🧪 Simulating NFC trigger: \(url)")
+        
+        // For testing purposes, we simulate the NFC trigger directly
+        
+        // For testing, we can directly call the handler
+        Task { @MainActor in
+            await simulateNFCTrigger(from: url)
+        }
+    }
+    
+    @MainActor
+    private func simulateNFCTrigger(from url: URL) async {
+        let path = url.path
+        
+        switch path {
+        case "/start":
+            await handleStartTrigger()
+        case "/toggle":
+            await handleToggleTrigger()
+        case "/break":
+            await handleBreakTrigger()
+        default:
+            print("🤷‍♂️ Unknown NFC action: \(path)")
+        }
+    }
+    
+    @MainActor
+    private func handleStartTrigger() async {
+        if sessionManager.isSessionActive {
+            print("📱 Session active - would show confirmation dialog")
+        } else {
+            await startWithDefaultProfile()
+        }
+    }
+    
+    @MainActor
+    private func handleToggleTrigger() async {
+        if sessionManager.isSessionActive {
+            do {
+                try await sessionManager.endFocusSession()
+                print("🔴 Session ended via simulated NFC")
+            } catch {
+                print("❌ Error ending session: \(error)")
+            }
+        } else {
+            await startWithDefaultProfile()
+        }
+    }
+    
+    @MainActor
+    private func handleBreakTrigger() async {
+        if sessionManager.isSessionActive && !sessionManager.isOnBreak {
+            if sessionManager.canTakeBreak() {
+                do {
+                    try await sessionManager.startBreak()
+                    print("☕ Break started via simulated NFC")
+                } catch {
+                    print("❌ Error starting break: \(error)")
+                }
+            } else {
+                print("🚫 No breaks available")
+            }
+        }
+    }
+    
+    @MainActor
+    private func startWithDefaultProfile() async {
+        let defaultProfile = FocusProfile.defaultProfiles.first { $0.name == "Work" } 
+                           ?? FocusProfile.defaultProfiles.first
+        
+        guard let profile = defaultProfile else {
+            print("❌ No profiles available")
+            return
+        }
+        
+        do {
+            try await sessionManager.startFocusSession(with: profile)
+            print("🚀 Session started with \(profile.name) profile via simulated NFC")
+        } catch {
+            print("❌ Error starting session: \(error)")
+        }
+    }
+}
+
+struct InfoRow: View {
+    let title: String
+    let value: String
+    
+    var body: some View {
+        HStack {
+            Text(title)
+            Spacer()
+            Text(value)
+                .foregroundColor(.secondary)
         }
     }
 }
