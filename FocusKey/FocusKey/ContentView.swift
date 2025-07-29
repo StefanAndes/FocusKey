@@ -7,6 +7,7 @@
 
 import SwiftUI
 import SwiftData
+import UserNotifications
 #if os(iOS)
 import FamilyControls
 import UIKit
@@ -357,10 +358,10 @@ struct FocusProfilesView: View {
         .sheet(isPresented: $showingCreateProfile) {
             SimpleProfileCreationView(profiles: $profiles)
         }
-        .alert("Edit Profile", isPresented: .constant(editingProfile != nil)) {
-            Button("Close") { editingProfile = nil }
-        } message: {
-            Text("Profile editing coming soon! For now, you can select apps to block and delete profiles via swipe.")
+        .sheet(item: $editingProfile) { profile in
+            ProfileScheduleSheet(profile: profile, profiles: $profiles) {
+                editingProfile = nil
+            }
         }
     }
     
@@ -445,8 +446,14 @@ struct ProfileRow: View {
                 
                 ConfigDetail(
                     icon: "timer",
-                    title: "Duration",
+                    title: "Break Time",
                     value: profile.allowedBreaks == 0 ? "—" : "\(profile.breakDuration)m"
+                )
+                
+                ConfigDetail(
+                    icon: "calendar.badge.clock",
+                    title: "Schedule",
+                    value: profile.isScheduled ? "Active" : "Manual"
                 )
                 
                 Spacer()
@@ -468,14 +475,18 @@ struct ProfileRow: View {
                 
                 Button(action: onEdit) {
                     HStack {
-                        Image(systemName: "gear")
-                        Text("Edit")
+                        Image(systemName: "calendar.badge.clock")
+                        Text("Schedule")
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 8)
-                    .background(Color(red: 0.95, green: 0.95, blue: 0.97))
-                    .foregroundColor(.secondary)
+                    .background(profile.isScheduled ? profile.color.opacity(0.1) : Color(red: 0.95, green: 0.95, blue: 0.97))
+                    .foregroundColor(profile.isScheduled ? profile.color : .secondary)
                     .cornerRadius(8)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(profile.isScheduled ? profile.color.opacity(0.3) : Color.clear, lineWidth: 1)
+                    )
                 }
             }
         }
@@ -1576,6 +1587,294 @@ struct WeeklyStatCard: View {
         .padding()
         .background(color.opacity(0.08))
         .cornerRadius(12)
+    }
+}
+
+struct ProfileScheduleSheet: View {
+    let profile: FocusProfile
+    @Binding var profiles: [FocusProfile]
+    let onDismiss: () -> Void
+    
+    @State private var isScheduled: Bool
+    @State private var selectedDays: Set<FocusProfile.Weekday>
+    @State private var startTime: Date
+    @State private var endTime: Date
+    @State private var enableNotifications = true
+    
+    init(profile: FocusProfile, profiles: Binding<[FocusProfile]>, onDismiss: @escaping () -> Void) {
+        self.profile = profile
+        self._profiles = profiles
+        self.onDismiss = onDismiss
+        self._isScheduled = State(initialValue: profile.isScheduled)
+        self._selectedDays = State(initialValue: profile.scheduleDays)
+        self._startTime = State(initialValue: profile.scheduleStart ?? Calendar.current.date(bySettingHour: 9, minute: 0, second: 0, of: Date()) ?? Date())
+        self._endTime = State(initialValue: profile.scheduleEnd ?? Calendar.current.date(bySettingHour: 17, minute: 0, second: 0, of: Date()) ?? Date())
+    }
+    
+    var body: some View {
+        NavigationView {
+            Form {
+                // Profile Header
+                Section {
+                    HStack {
+                        Image(systemName: profile.icon)
+                            .font(.title2)
+                            .foregroundColor(profile.color)
+                            .frame(width: 32, height: 32)
+                            .background(
+                                Circle()
+                                    .fill(profile.color.opacity(0.15))
+                            )
+                        
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(profile.name)
+                                .font(.headline)
+                                .fontWeight(.semibold)
+                            
+                            Text(profile.description)
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                        }
+                        
+                        Spacer()
+                    }
+                    .padding(.vertical, 8)
+                }
+                
+                // Schedule Toggle
+                Section("Automatic Scheduling") {
+                    Toggle("Enable Scheduled Sessions", isOn: $isScheduled)
+                        .toggleStyle(SwitchToggleStyle(tint: profile.color))
+                    
+                    if isScheduled {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Your \(profile.name) sessions will start automatically based on the schedule below.")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                                .padding(.top, 4)
+                        }
+                    }
+                }
+                
+                if isScheduled {
+                    // Days Selection
+                    Section("Days of the Week") {
+                        LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 2), spacing: 12) {
+                            ForEach(FocusProfile.Weekday.allCases, id: \.self) { weekday in
+                                DayToggleButton(
+                                    weekday: weekday,
+                                    isSelected: selectedDays.contains(weekday),
+                                    color: profile.color
+                                ) {
+                                    if selectedDays.contains(weekday) {
+                                        selectedDays.remove(weekday)
+                                    } else {
+                                        selectedDays.insert(weekday)
+                                    }
+                                }
+                            }
+                        }
+                        .padding(.vertical, 8)
+                    }
+                    
+                    // Time Settings
+                    Section("Session Times") {
+                        DatePicker("Start Time", selection: $startTime, displayedComponents: .hourAndMinute)
+                            .datePickerStyle(CompactDatePickerStyle())
+                        
+                        DatePicker("End Time", selection: $endTime, displayedComponents: .hourAndMinute)
+                            .datePickerStyle(CompactDatePickerStyle())
+                        
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Session Duration: \(formatTimeDifference(from: startTime, to: endTime))")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            
+                            Text("Sessions will start and end automatically at these times.")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        .padding(.top, 4)
+                    }
+                    
+                    // Notifications
+                    Section("Notifications") {
+                        Toggle("Notify before session starts", isOn: $enableNotifications)
+                            .toggleStyle(SwitchToggleStyle(tint: profile.color))
+                        
+                        if enableNotifications {
+                            Text("You'll receive a notification 5 minutes before your scheduled session begins.")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                                .padding(.top, 4)
+                        }
+                    }
+                    
+                    // Preview
+                    Section("Schedule Preview") {
+                        if !selectedDays.isEmpty {
+                            ForEach(Array(selectedDays).sorted { $0.rawValue < $1.rawValue }, id: \.self) { day in
+                                HStack {
+                                    Text(day.rawValue)
+                                        .fontWeight(.medium)
+                                    
+                                    Spacer()
+                                    
+                                    Text("\(formatTime(startTime)) - \(formatTime(endTime))")
+                                        .foregroundColor(.secondary)
+                                }
+                                .padding(.vertical, 2)
+                            }
+                        } else {
+                            Text("Select days to see your schedule")
+                                .foregroundColor(.secondary)
+                                .italic()
+                        }
+                    }
+                }
+            }
+            .navigationTitle("Schedule \(profile.name)")
+            #if os(iOS)
+            .navigationBarTitleDisplayMode(.inline)
+            #endif
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") {
+                        onDismiss()
+                    }
+                }
+                
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Save") {
+                        saveSchedule()
+                    }
+                    .disabled(isScheduled && selectedDays.isEmpty)
+                }
+            }
+        }
+    }
+    
+    private func saveSchedule() {
+        // Update the profile in the array
+        if let index = profiles.firstIndex(where: { $0.id == profile.id }) {
+            profiles[index].isScheduled = isScheduled
+            profiles[index].scheduleDays = selectedDays
+            profiles[index].scheduleStart = isScheduled ? startTime : nil
+            profiles[index].scheduleEnd = isScheduled ? endTime : nil
+            
+            // TODO: Schedule local notifications
+            if isScheduled && enableNotifications {
+                scheduleNotifications(for: profiles[index])
+            }
+        }
+        
+        onDismiss()
+    }
+    
+    private func scheduleNotifications(for profile: FocusProfile) {
+        guard profile.isScheduled else { return }
+        
+        // Request notification permission if needed
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
+            if granted {
+                self.createScheduledNotifications(for: profile)
+            } else {
+                print("⚠️ Notification permission denied")
+            }
+        }
+    }
+    
+    private func createScheduledNotifications(for profile: FocusProfile) {
+        // Remove existing notifications for this profile
+        let identifiers = profile.scheduleDays.map { "focus_\(profile.id)_\($0.rawValue)" }
+        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: identifiers)
+        
+        // Schedule new notifications
+        for weekday in profile.scheduleDays {
+            guard let startTime = profile.scheduleStart else { continue }
+            
+            let calendar = Calendar.current
+            let components = calendar.dateComponents([.hour, .minute], from: startTime)
+            
+            var notificationComponents = DateComponents()
+            notificationComponents.weekday = weekday.calendarWeekday
+            notificationComponents.hour = components.hour
+            notificationComponents.minute = (components.minute ?? 0) - 5 // 5 minutes before
+            
+            let trigger = UNCalendarNotificationTrigger(dateMatching: notificationComponents, repeats: true)
+            
+            let content = UNMutableNotificationContent()
+            content.title = "Focus Session Starting Soon"
+            content.body = "Your \(profile.name) session begins in 5 minutes!"
+            content.sound = UNNotificationSound.default
+            
+            let request = UNNotificationRequest(
+                identifier: "focus_\(profile.id)_\(weekday.rawValue)",
+                content: content,
+                trigger: trigger
+            )
+            
+            UNUserNotificationCenter.current().add(request) { error in
+                if let error = error {
+                    print("❌ Error scheduling notification: \(error)")
+                } else {
+                    print("✅ Scheduled notification for \(profile.name) on \(weekday.rawValue)")
+                }
+            }
+        }
+    }
+    
+    private func formatTime(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.timeStyle = .short
+        return formatter.string(from: date)
+    }
+    
+    private func formatTimeDifference(from start: Date, to end: Date) -> String {
+        let difference = end.timeIntervalSince(start)
+        let hours = Int(difference) / 3600
+        let minutes = Int(difference) % 3600 / 60
+        
+        if hours > 0 {
+            return "\(hours)h \(minutes)m"
+        } else {
+            return "\(minutes)m"
+        }
+    }
+}
+
+struct DayToggleButton: View {
+    let weekday: FocusProfile.Weekday
+    let isSelected: Bool
+    let color: Color
+    let onTap: () -> Void
+    
+    var body: some View {
+        Button(action: onTap) {
+            HStack {
+                Text(weekday.shortName)
+                    .fontWeight(.semibold)
+                
+                Spacer()
+                
+                if isSelected {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundColor(color)
+                }
+            }
+            .padding(.vertical, 12)
+            .padding(.horizontal, 16)
+            .background(
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(isSelected ? color.opacity(0.1) : Color(red: 0.95, green: 0.95, blue: 0.97))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10)
+                            .stroke(isSelected ? color.opacity(0.3) : Color.clear, lineWidth: 1)
+                    )
+            )
+            .foregroundColor(isSelected ? color : .primary)
+        }
+        .buttonStyle(PlainButtonStyle())
     }
 }
 
