@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import SwiftData
 import FamilyControls
 import ManagedSettings
 import DeviceActivity
@@ -14,15 +15,20 @@ import DeviceActivity
 struct FocusKeyApp: App {
     @StateObject private var sessionManager = FocusSessionManager.shared
     
+
+    
     var body: some Scene {
         WindowGroup {
-            ContentView()
+                        ContentView()
                 .environmentObject(sessionManager)
+// TODO: Add .modelContainer(for: [SessionHistory.self, StoredFocusProfile.self]) when models are accessible
                 .onOpenURL { url in
                     handleUniversalLink(url)
                 }
+
         }
     }
+
     
     private func handleUniversalLink(_ url: URL) {
         print("🔗 Universal Link received: \(url)")
