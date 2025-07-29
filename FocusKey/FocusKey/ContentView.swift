@@ -772,47 +772,90 @@ struct ProfilePickerSheet: View {
 }
 
 struct HistoryView: View {
+    @Query(sort: \SessionHistory.startTime, order: .reverse) private var sessions: [SessionHistory]
     @EnvironmentObject var sessionManager: FocusSessionManager
     
     var body: some View {
         NavigationView {
-            // Temporary: Show placeholder until SwiftData is fully integrated
-            VStack(spacing: 20) {
-                Image(systemName: "chart.line.uptrend.xyaxis")
-                    .font(.system(size: 60))
-                    .foregroundColor(.blue)
-                
-                Text("Session History")
-                    .font(.title2)
-                    .fontWeight(.semibold)
-                
-                Text("📊 Beautiful session analytics coming soon!\n\n✅ SwiftData persistence layer ready\n✅ Session tracking models created\n✅ Weekly stats and focus efficiency\n✅ Today/This Week/Older organization")
-                    .multilineTextAlignment(.center)
-                    .foregroundColor(.secondary)
-                    .padding(.horizontal)
-                
-                if sessionManager.isSessionActive {
-                    VStack(spacing: 8) {
-                        Text("Active Session")
-                            .font(.headline)
-                            .foregroundColor(.green)
-                        
-                        Text("Profile: \(sessionManager.currentProfile?.name ?? "Unknown")")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                        
-                        Text("Your current session will appear in history once completed!")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                            .multilineTextAlignment(.center)
+            if sessions.isEmpty {
+                // No sessions yet - show beautiful empty state
+                VStack(spacing: 20) {
+                    Image(systemName: "clock.badge")
+                        .font(.system(size: 60))
+                        .foregroundColor(.gray)
+                    
+                    Text("No Sessions Yet")
+                        .font(.title2)
+                        .fontWeight(.semibold)
+                    
+                    Text("Your focus sessions will appear here after you complete them")
+                        .multilineTextAlignment(.center)
+                        .foregroundColor(.secondary)
+                        .padding(.horizontal)
+                    
+                    if !sessionManager.isSessionActive {
+                        Button("Start Your First Session") {
+                            // This could switch to Session tab in the future
+                        }
+                        .padding()
+                        .background(Color.blue)
+                        .foregroundColor(.white)
+                        .cornerRadius(10)
                     }
-                    .padding()
-                    .background(Color.green.opacity(0.1))
-                    .cornerRadius(10)
                 }
+                .navigationTitle("History")
+            } else {
+                // Show real session data
+                List {
+                    // Today's Sessions
+                    let todaySessions = sessions.filter { Calendar.current.isDateInToday($0.startTime) }
+                    if !todaySessions.isEmpty {
+                        Section("Today") {
+                                                         ForEach(todaySessions, id: \.id) { session in
+                                 Text("📊 \(session.profileName) - \(formatSessionTime(session))")
+                             }
+                        }
+                    }
+                    
+                    // This Week's Sessions
+                    let thisWeekSessions = sessions.filter { 
+                        !Calendar.current.isDateInToday($0.startTime) && 
+                        Calendar.current.isDate($0.startTime, equalTo: Date(), toGranularity: .weekOfYear)
+                    }
+                    if !thisWeekSessions.isEmpty {
+                        Section("This Week") {
+                                                         ForEach(thisWeekSessions, id: \.id) { session in
+                                 Text("📊 \(session.profileName) - \(formatSessionTime(session))")
+                             }
+                        }
+                    }
+                    
+                    // Older Sessions
+                    let olderSessions = sessions.filter { 
+                        !Calendar.current.isDate($0.startTime, equalTo: Date(), toGranularity: .weekOfYear)
+                    }
+                    if !olderSessions.isEmpty {
+                        Section("Older") {
+                                                         ForEach(olderSessions, id: \.id) { session in
+                                 Text("📊 \(session.profileName) - \(formatSessionTime(session))")
+                             }
+                        }
+                    }
+                    
+                                         // Weekly Stats - Coming Soon
+                     Section("This Week's Stats") {
+                         Text("📈 \(sessions.count) total sessions")
+                     }
+                }
+                .navigationTitle("History")
             }
-            .navigationTitle("History")
         }
+    }
+    
+    private func formatSessionTime(_ session: SessionHistory) -> String {
+        let duration = session.totalSessionTime
+        let minutes = Int(duration) / 60
+        return "\(minutes)m"
     }
 }
 
@@ -1049,7 +1092,7 @@ struct SettingsView: View {
         }
         
         do {
-            try await sessionManager.startFocusSession(with: profile)
+            try await sessionManager.startFocusSession(with: profile, triggerMethod: "nfc")
             print("🚀 Session started with \(profile.name) profile via simulated NFC")
             showAlert("Session Started! 🚀", "Focus session active with \(profile.name) profile. Selected apps are now blocked!")
         } catch {

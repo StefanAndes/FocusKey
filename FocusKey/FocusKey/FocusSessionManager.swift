@@ -7,6 +7,7 @@
 
 import Foundation
 import SwiftUI
+import SwiftData
 #if os(iOS)
 import FamilyControls
 import ManagedSettings
@@ -31,7 +32,16 @@ class FocusSessionManager: ObservableObject {
     private let activityName = DeviceActivityName("FocusKeyActiveSession")
     #endif
     
+    // SwiftData context for session tracking
+    private var modelContext: ModelContext?
+    private var currentSessionHistory: SessionHistory?
+    
     private init() {}
+    
+    // Set the model context from the app
+    func setModelContext(_ context: ModelContext) {
+        self.modelContext = context
+    }
     
     // MARK: - Authorization Check
     
@@ -45,7 +55,7 @@ class FocusSessionManager: ObservableObject {
     
     // MARK: - Session Management
     
-    func startFocusSession(with profile: FocusProfile) async throws {
+    func startFocusSession(with profile: FocusProfile, triggerMethod: String = "manual") async throws {
         guard isAuthorized else {
             throw FocusSessionError.notAuthorized
         }
@@ -82,6 +92,9 @@ class FocusSessionManager: ObservableObject {
         isSessionActive = true
         breaksUsed = 0
         
+        // Create session history record
+        createSessionHistory(profile: profile, triggerMethod: triggerMethod)
+        
         print("✅ Focus session started with profile: \(profile.name)")
     }
     
@@ -102,7 +115,7 @@ class FocusSessionManager: ObservableObject {
         
         // Log the session
         if let profile = currentProfile, let startTime = sessionStartTime {
-            logCompletedSession(profile: profile, startTime: startTime, endTime: Date())
+            logCompletedSession(profile: profile, startTime: startTime, endTime: Date(), naturally: true)
         }
         
         // Reset session state
@@ -141,6 +154,9 @@ class FocusSessionManager: ObservableObject {
         isOnBreak = true
         breakStartTime = Date()
         breaksUsed += 1
+        
+        // Log break in session history
+        logBreakTaken()
         
         // Schedule automatic resume
         if let profile = currentProfile {
@@ -198,11 +214,61 @@ class FocusSessionManager: ObservableObject {
     
     // MARK: - Session Logging
     
-    private func logCompletedSession(profile: FocusProfile, startTime: Date, endTime: Date) {
+    private func logCompletedSession(profile: FocusProfile, startTime: Date, endTime: Date, naturally: Bool) {
         let duration = endTime.timeIntervalSince(startTime)
         
-        // TODO: Save to local storage/SwiftData
-        print("📊 Session logged: \(profile.name) - \(Int(duration/60)) minutes, \(breaksUsed) breaks")
+        // Update and save the session history
+        if let sessionHistory = currentSessionHistory, let context = modelContext {
+            sessionHistory.endSession(naturally: naturally)
+            sessionHistory.updateFocusTime()
+            
+            do {
+                try context.save()
+                print("📊 Session saved to history: \(profile.name) - \(Int(duration/60)) minutes, \(breaksUsed) breaks")
+            } catch {
+                print("❌ Failed to save session history: \(error)")
+            }
+        } else {
+            print("📊 Session logged (not saved): \(profile.name) - \(Int(duration/60)) minutes, \(breaksUsed) breaks")
+        }
+        
+        // Clear current session reference
+        currentSessionHistory = nil
+    }
+    
+    private func createSessionHistory(profile: FocusProfile, triggerMethod: String) {
+        guard let context = modelContext else {
+            print("⚠️ No model context available for session tracking")
+            return
+        }
+        
+        let sessionHistory = SessionHistory(profileName: profile.name, triggerMethod: triggerMethod)
+        context.insert(sessionHistory)
+        
+        self.currentSessionHistory = sessionHistory
+        
+        do {
+            try context.save()
+            print("📝 Session history created for \(profile.name)")
+        } catch {
+            print("❌ Failed to create session history: \(error)")
+        }
+    }
+    
+    private func logBreakTaken() {
+        guard let sessionHistory = currentSessionHistory,
+              let profile = currentProfile else { return }
+        
+        sessionHistory.addBreak(duration: TimeInterval(profile.breakDuration * 60))
+        
+        if let context = modelContext {
+            do {
+                try context.save()
+                print("☕ Break logged in session history")
+            } catch {
+                print("❌ Failed to log break: \(error)")
+            }
+        }
     }
     
     // MARK: - Session Info

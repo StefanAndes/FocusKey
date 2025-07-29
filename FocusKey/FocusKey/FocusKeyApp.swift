@@ -21,14 +21,24 @@ struct FocusKeyApp: App {
         WindowGroup {
                         ContentView()
                 .environmentObject(sessionManager)
-// TODO: Add .modelContainer(for: [SessionHistory.self, StoredFocusProfile.self]) when models are accessible
+                .modelContainer(for: [SessionHistory.self, StoredFocusProfile.self])
                 .onOpenURL { url in
                     handleUniversalLink(url)
+                }
+                .onAppear {
+                    setupModelContext()
                 }
 
         }
     }
-
+    
+    private func setupModelContext() {
+        // Get the shared model container and pass context to session manager
+        Task { @MainActor in
+            // This will be set up when the model container is available
+            print("📦 Setting up SwiftData integration...")
+        }
+    }
     
     private func handleUniversalLink(_ url: URL) {
         print("🔗 Universal Link received: \(url)")
@@ -115,7 +125,7 @@ struct FocusKeyApp: App {
         }
         
         do {
-            try await sessionManager.startFocusSession(with: profile)
+            try await sessionManager.startFocusSession(with: profile, triggerMethod: "nfc")
             print("🚀 Session started with \(profile.name) profile via NFC")
         } catch {
             print("❌ Error starting session: \(error)")
