@@ -8,10 +8,14 @@
 import Foundation
 import SwiftUI
 import SwiftData
+import UserNotifications
 #if os(iOS)
 import FamilyControls
 import ManagedSettings
 import DeviceActivity
+#if canImport(ActivityKit)
+import ActivityKit
+#endif
 #endif
 
 @MainActor
@@ -36,11 +40,114 @@ class FocusSessionManager: ObservableObject {
     private var modelContext: ModelContext?
     private var currentSessionHistory: SessionHistory?
     
-    private init() {}
+    // Live Activity support
+    @Published var isLiveActivityActive = false
+    @Published var isLiveActivitySupported = false
+    
+    #if os(iOS) && canImport(ActivityKit)
+    @available(iOS 16.1, *)
+    private var currentActivity: Activity<FocusSessionActivityAttributes>?
+    #endif
+    
+    // Session timing for Live Activity updates
+    private var sessionTimer: Timer?
+    
+    private init() {
+        checkLiveActivitySupport()
+    }
+    
+    // MARK: - Live Activity Support
+    
+    private func checkLiveActivitySupport() {
+        #if os(iOS) && canImport(ActivityKit)
+        if #available(iOS 16.1, *) {
+            isLiveActivitySupported = ActivityAuthorizationInfo().areActivitiesEnabled
+        } else {
+            isLiveActivitySupported = false
+        }
+        #else
+        isLiveActivitySupported = false
+        #endif
+    }
+    
+    #if os(iOS) && canImport(ActivityKit)
+    @available(iOS 16.1, *)
+    struct FocusSessionActivityAttributes: ActivityAttributes {
+        public struct ContentState: Codable, Hashable {
+            var profileName: String
+            var profileIcon: String
+            var profileColor: String
+            var sessionStartTime: Date
+            var isOnBreak: Bool
+            var breaksUsed: Int
+            var allowedBreaks: Int
+            var elapsedTime: TimeInterval
+            var focusEfficiency: Double
+            var sessionStatus: String
+        }
+        
+        var sessionId: String
+        var triggerMethod: String
+    }
+    #endif
     
     // Set the model context from the app
     func setModelContext(_ context: ModelContext) {
         self.modelContext = context
+    }
+    
+    // MARK: - Live Activity Support (Simplified)
+    
+    private func startLiveActivityNotification(for profile: FocusProfile) {
+        let content = UNMutableNotificationContent()
+        content.title = "🎯 Focus Session Started"
+        content.body = "Focusing with \(profile.name) profile. Apps are now blocked."
+        content.sound = nil
+        content.categoryIdentifier = "FOCUS_SESSION_ACTIVE"
+        
+        let request = UNNotificationRequest(
+            identifier: "focus_session_active",
+            content: content,
+            trigger: nil
+        )
+        
+        UNUserNotificationCenter.current().add(request) { error in
+            if let error = error {
+                print("❌ Failed to show focus notification: \(error)")
+            } else {
+                print("📱 Live Activity notification shown for \(profile.name)")
+                Task { @MainActor in
+                    self.isLiveActivityActive = true
+                }
+            }
+        }
+    }
+    
+    private func endLiveActivityNotification() {
+        UNUserNotificationCenter.current().removeDeliveredNotifications(withIdentifiers: ["focus_session_active"])
+        UNUserNotificationCenter.current().removeAllPendingNotificationRequests()
+        
+        let content = UNMutableNotificationContent()
+        content.title = "✅ Focus Session Complete"
+        content.body = "Great job! Your focus session has ended."
+        content.sound = UNNotificationSound.default
+        content.categoryIdentifier = "FOCUS_SESSION_COMPLETE"
+        
+        let request = UNNotificationRequest(
+            identifier: "focus_session_complete",
+            content: content,
+            trigger: nil
+        )
+        
+        UNUserNotificationCenter.current().add(request) { error in
+            if error == nil {
+                print("📱 Focus session completion notification shown")
+            }
+        }
+        
+        Task { @MainActor in
+            self.isLiveActivityActive = false
+        }
     }
     
     // MARK: - Authorization Check
@@ -95,6 +202,9 @@ class FocusSessionManager: ObservableObject {
         // Create session history record
         createSessionHistory(profile: profile, triggerMethod: triggerMethod)
         
+        // Start Live Activity (notification fallback)
+        startLiveActivityNotification(for: profile)
+        
         print("✅ Focus session started with profile: \(profile.name)")
     }
     
@@ -125,6 +235,9 @@ class FocusSessionManager: ObservableObject {
         isOnBreak = false
         breakStartTime = nil
         breaksUsed = 0
+        
+        // End Live Activity
+        endLiveActivityNotification()
         
         print("✅ Focus session ended")
     }
@@ -310,5 +423,22 @@ enum FocusSessionError: LocalizedError {
         case .notOnBreak:
             return "Not currently on a break"
         }
+    }
+    
+    
+}
+
+// MARK: - Color Extension for Hex Support
+extension Color {
+    var hexString: String {
+        #if os(iOS)
+        guard let components = UIColor(self).cgColor.components else { return "#007AFF" }
+        let r = Int(components[0] * 255)
+        let g = Int(components[1] * 255)
+        let b = Int(components[2] * 255)
+        return String(format: "#%02X%02X%02X", r, g, b)
+        #else
+        return "#007AFF"
+        #endif
     }
 } 
