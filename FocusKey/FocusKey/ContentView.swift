@@ -786,12 +786,38 @@ struct HistoryView: View {
 
 struct SettingsView: View {
     @EnvironmentObject var sessionManager: FocusSessionManager
+    @State private var showingAlert = false
+    @State private var alertMessage = ""
+    
+    private func showAlert(_ title: String, _ message: String) {
+        alertMessage = message
+        showingAlert = true
+    }
     
     var body: some View {
         NavigationView {
             List {
                 Section("NFC Testing") {
                     VStack(alignment: .leading, spacing: 12) {
+                        // Current Status Indicator
+                        HStack {
+                            Circle()
+                                .fill(sessionManager.isSessionActive ? Color.green : Color.gray)
+                                .frame(width: 8, height: 8)
+                            
+                            Text(sessionManager.isSessionActive ? 
+                                 (sessionManager.isOnBreak ? "🔄 On Break" : "🔴 Session Active") : 
+                                 "⚫ No Session")
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                        }
+                        
+                        if sessionManager.isSessionActive {
+                            Text("Profile: \(sessionManager.currentProfile?.name ?? "Unknown")")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        
                         Text("Test NFC triggers without physical cards")
                             .font(.subheadline)
                             .foregroundColor(.secondary)
@@ -888,6 +914,11 @@ struct SettingsView: View {
                 }
             }
             .navigationTitle("Settings")
+            .alert("NFC Simulation", isPresented: $showingAlert) {
+                Button("OK") { }
+            } message: {
+                Text(alertMessage)
+            }
         }
     }
     
@@ -896,7 +927,11 @@ struct SettingsView: View {
         
         print("🧪 Simulating NFC trigger: \(url)")
         
-        // For testing purposes, we simulate the NFC trigger directly
+        // Add haptic feedback to simulate NFC tap
+        #if os(iOS)
+        let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
+        impactFeedback.impactOccurred()
+        #endif
         
         // For testing, we can directly call the handler
         Task { @MainActor in
@@ -924,6 +959,7 @@ struct SettingsView: View {
     private func handleStartTrigger() async {
         if sessionManager.isSessionActive {
             print("📱 Session active - would show confirmation dialog")
+            showAlert("Session Already Active", "A focus session is already running. Use 'Toggle' to end it.")
         } else {
             await startWithDefaultProfile()
         }
@@ -935,8 +971,10 @@ struct SettingsView: View {
             do {
                 try await sessionManager.endFocusSession()
                 print("🔴 Session ended via simulated NFC")
+                showAlert("Session Ended! 🔴", "Your focus session has been stopped via NFC trigger.")
             } catch {
                 print("❌ Error ending session: \(error)")
+                showAlert("Error", "Failed to end session: \(error.localizedDescription)")
             }
         } else {
             await startWithDefaultProfile()
@@ -950,12 +988,19 @@ struct SettingsView: View {
                 do {
                     try await sessionManager.startBreak()
                     print("☕ Break started via simulated NFC")
+                    showAlert("Break Started! ☕", "Enjoy your 5-minute break. Apps are temporarily unblocked.")
                 } catch {
                     print("❌ Error starting break: \(error)")
+                    showAlert("Error", "Failed to start break: \(error.localizedDescription)")
                 }
             } else {
                 print("🚫 No breaks available")
+                showAlert("No Breaks Available 🚫", "You've used all your breaks for this session.")
             }
+        } else if !sessionManager.isSessionActive {
+            showAlert("No Active Session", "Start a focus session first before taking a break.")
+        } else if sessionManager.isOnBreak {
+            showAlert("Already on Break ☕", "You're currently on a break! Return to focus or end session.")
         }
     }
     
@@ -972,8 +1017,10 @@ struct SettingsView: View {
         do {
             try await sessionManager.startFocusSession(with: profile)
             print("🚀 Session started with \(profile.name) profile via simulated NFC")
+            showAlert("Session Started! 🚀", "Focus session active with \(profile.name) profile. Selected apps are now blocked!")
         } catch {
             print("❌ Error starting session: \(error)")
+            showAlert("Error", "Failed to start session: \(error.localizedDescription)")
         }
     }
 }
