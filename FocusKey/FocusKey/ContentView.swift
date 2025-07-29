@@ -349,24 +349,24 @@ struct FocusProfilesView: View {
                     }) {
                         HStack {
                             Image(systemName: "plus.circle.fill")
-                                .foregroundColor(.blue)
+                                .foregroundColor(Color(hex: "#5a9fd4"))
                                 .font(.title2)
                             
                             VStack(alignment: .leading, spacing: 2) {
                                 Text("Create New Profile")
-                                    .font(.headline)
-                                    .foregroundColor(.primary)
+                                    .font(.system(size: 17, weight: .semibold))
+                                    .foregroundColor(Color(hex: "#2c3e50"))
                                 
                                 Text("Design a custom focus profile")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
+                                    .font(.system(size: 12, weight: .regular))
+                                    .foregroundColor(Color(hex: "#64748b"))
                             }
                             
                             Spacer()
                             
                             Image(systemName: "chevron.right")
                                 .font(.caption)
-                                .foregroundColor(.secondary)
+                                .foregroundColor(Color(hex: "#64748b"))
                         }
                         .padding(.vertical, 4)
                     }
@@ -376,6 +376,7 @@ struct FocusProfilesView: View {
             #if os(iOS)
             .navigationBarTitleDisplayMode(.large)
             #endif
+            .background(Color(hex: "#f8fafc"))
         }
         #if os(iOS)
         .familyActivityPicker(
@@ -426,12 +427,12 @@ struct ProfileRow: View {
                 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(profile.name)
-                        .font(.headline)
-                        .fontWeight(.semibold)
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundColor(Color(hex: "#2c3e50"))
                     
                     Text(profile.description)
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
+                        .font(.system(size: 15, weight: .regular))
+                        .foregroundColor(Color(hex: "#64748b"))
                         .lineLimit(2)
                 }
                 
@@ -444,20 +445,20 @@ struct ProfileRow: View {
                        !profile.activitySelection.webDomainTokens.isEmpty {
                         
                         Image(systemName: "checkmark.circle.fill")
-                            .foregroundColor(.green)
+                            .foregroundColor(Color(hex: "#10b981"))
                             .font(.title3)
                         
                         Text("Configured")
-                            .font(.caption)
-                            .foregroundColor(.green)
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(Color(hex: "#10b981"))
                     } else {
                         Image(systemName: "circle")
-                            .foregroundColor(.gray)
+                            .foregroundColor(Color(hex: "#64748b"))
                             .font(.title3)
                         
                         Text("Not Set")
-                            .font(.caption)
-                            .foregroundColor(.gray)
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(Color(hex: "#64748b"))
                     }
                     #else
                     Image(systemName: "circle")
@@ -465,8 +466,8 @@ struct ProfileRow: View {
                         .font(.title3)
                     
                     Text("iOS Only")
-                        .font(.caption)
-                        .foregroundColor(.gray)
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(Color(hex: "#64748b"))
                     #endif
                 }
             }
@@ -515,8 +516,8 @@ struct ProfileRow: View {
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 8)
-                    .background(profile.isScheduled ? profile.color.opacity(0.1) : Color(red: 0.95, green: 0.95, blue: 0.97))
-                    .foregroundColor(profile.isScheduled ? profile.color : .secondary)
+                    .background(profile.isScheduled ? profile.color.opacity(0.1) : Color(hex: "#f5f1e8").opacity(0.5))
+                    .foregroundColor(profile.isScheduled ? profile.color : Color(hex: "#64748b"))
                     .cornerRadius(8)
                     .overlay(
                         RoundedRectangle(cornerRadius: 8)
@@ -538,17 +539,17 @@ struct ConfigDetail: View {
         HStack(spacing: 6) {
             Image(systemName: icon)
                 .font(.caption)
-                .foregroundColor(.secondary)
+                .foregroundColor(Color(hex: "#64748b"))
                 .frame(width: 12)
             
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
+                    .font(.system(size: 10, weight: .regular))
+                    .foregroundColor(Color(hex: "#64748b"))
                 
                 Text(value)
-                    .font(.caption)
-                    .fontWeight(.medium)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(Color(hex: "#2c3e50"))
             }
         }
     }
@@ -1208,17 +1209,23 @@ struct HistoryView: View {
             if sessions.isEmpty {
                 // No sessions yet - show beautiful empty state
                 VStack(spacing: 20) {
-                    Image(systemName: "clock.badge")
-                        .font(.system(size: 60))
-                        .foregroundColor(.gray)
+                    ZStack {
+                        Circle()
+                            .fill(Color(hex: "#5a9fd4").opacity(0.1))
+                            .frame(width: 120, height: 120)
+                        
+                        Image(systemName: "chart.line.uptrend.xyaxis")
+                            .font(.system(size: 48, weight: .medium))
+                            .foregroundColor(Color(hex: "#5a9fd4"))
+                    }
                     
                     Text("No Sessions Yet")
-                        .font(.title2)
-                        .fontWeight(.semibold)
+                        .font(.system(size: 24, weight: .semibold))
+                        .foregroundColor(Color(hex: "#2c3e50"))
                     
                     Text("Your focus sessions will appear here after you complete them")
                         .multilineTextAlignment(.center)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(Color(hex: "#64748b"))
                         .padding(.horizontal)
                     
                     if !sessionManager.isSessionActive {
@@ -1226,12 +1233,17 @@ struct HistoryView: View {
                             // This could switch to Session tab in the future
                         }
                         .padding()
-                        .background(Color.blue)
+                        .background(LinearGradient(
+                            colors: [Color(hex: "#7bb3d3"), Color(hex: "#5a9fd4")],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        ))
                         .foregroundColor(.white)
-                        .cornerRadius(10)
+                        .cornerRadius(12)
                     }
                 }
                 .navigationTitle("History")
+                .background(Color(hex: "#f8fafc"))
             } else {
                 // Show real session data
                 List {
@@ -1274,6 +1286,7 @@ struct HistoryView: View {
                      WeeklyStatsSection(sessions: sessions)
                 }
                 .navigationTitle("History")
+                .background(Color(hex: "#f8fafc"))
             }
         }
     }
@@ -1305,41 +1318,40 @@ struct SessionHistoryCard: View {
                 VStack(alignment: .leading, spacing: 4) {
                     HStack {
                         Text(session.profileName)
-                            .font(.headline)
-                            .fontWeight(.semibold)
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundColor(Color(hex: "#2c3e50"))
                         
                         Spacer()
                         
                         if session.isActive {
                             HStack(spacing: 4) {
                                 Circle()
-                                    .fill(Color.green)
+                                    .fill(Color(hex: "#10b981"))
                                     .frame(width: 8, height: 8)
                                 Text("Active")
-                                    .font(.caption)
-                                    .fontWeight(.medium)
-                                    .foregroundColor(.green)
+                                    .font(.system(size: 12, weight: .medium))
+                                    .foregroundColor(Color(hex: "#10b981"))
                             }
                         } else {
                             HStack(spacing: 4) {
                                 Image(systemName: session.wasCompletedNaturally ? "checkmark.circle.fill" : "xmark.circle.fill")
                                     .font(.caption)
-                                    .foregroundColor(session.wasCompletedNaturally ? .green : .orange)
+                                    .foregroundColor(session.wasCompletedNaturally ? Color(hex: "#10b981") : Color(hex: "#f59e0b"))
                                 
                                 Text(session.wasCompletedNaturally ? "Completed" : "Interrupted")
-                                    .font(.caption)
-                                    .foregroundColor(session.wasCompletedNaturally ? .green : .orange)
+                                    .font(.system(size: 12, weight: .medium))
+                                    .foregroundColor(session.wasCompletedNaturally ? Color(hex: "#10b981") : Color(hex: "#f59e0b"))
                             }
                         }
                     }
                     
                     Text(formatTimeRange(session.startTime, session.endTime))
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
+                        .font(.system(size: 15, weight: .regular))
+                        .foregroundColor(Color(hex: "#64748b"))
                     
                     Text(triggerMethodText(session.triggerMethod))
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                        .font(.system(size: 12, weight: .regular))
+                        .foregroundColor(Color(hex: "#64748b"))
                 }
             }
             
@@ -1349,14 +1361,14 @@ struct SessionHistoryCard: View {
                     icon: "clock.fill",
                     title: "Duration",
                     value: formatDuration(session.totalSessionTime),
-                    color: .blue
+                    color: Color(hex: "#5a9fd4")
                 )
                 
                 StatItem(
                     icon: "target",
                     title: "Focus Time",
                     value: formatDuration(session.totalFocusTime),
-                    color: .green
+                    color: Color(hex: "#10b981")
                 )
                 
                 if session.breaksTaken > 0 {
@@ -1364,7 +1376,7 @@ struct SessionHistoryCard: View {
                         icon: "cup.and.saucer.fill",
                         title: "Breaks",
                         value: "\(session.breaksTaken)",
-                        color: .orange
+                        color: Color(hex: "#f59e0b")
                     )
                 }
                 
@@ -1376,14 +1388,13 @@ struct SessionHistoryCard: View {
                 VStack(alignment: .leading, spacing: 6) {
                     HStack {
                         Text("Focus Efficiency")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+                            .font(.system(size: 12, weight: .regular))
+                            .foregroundColor(Color(hex: "#64748b"))
                         
                         Spacer()
                         
                         Text("\(Int(session.focusEfficiency * 100))%")
-                            .font(.caption)
-                            .fontWeight(.medium)
+                            .font(.system(size: 12, weight: .medium))
                             .foregroundColor(efficiencyColor(session.focusEfficiency))
                     }
                     
@@ -1467,12 +1478,12 @@ struct StatItem: View {
             
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
+                    .font(.system(size: 10, weight: .regular))
+                    .foregroundColor(Color(hex: "#64748b"))
                 
                 Text(value)
-                    .font(.caption)
-                    .fontWeight(.semibold)
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(Color(hex: "#2c3e50"))
             }
         }
     }
@@ -2083,25 +2094,25 @@ struct SettingsView: View {
                         // Current Status Indicator
                         HStack {
                             Circle()
-                                .fill(sessionManager.isSessionActive ? Color.green : Color.gray)
+                                .fill(sessionManager.isSessionActive ? Color(hex: "#10b981") : Color(hex: "#64748b"))
                                 .frame(width: 8, height: 8)
                             
                             Text(sessionManager.isSessionActive ? 
                                  (sessionManager.isOnBreak ? "🔄 On Break" : "🔴 Session Active") : 
                                  "⚫ No Session")
-                                .font(.subheadline)
-                                .fontWeight(.medium)
+                                .font(.system(size: 15, weight: .medium))
+                                .foregroundColor(Color(hex: "#2c3e50"))
                         }
                         
                         if sessionManager.isSessionActive {
                             Text("Profile: \(sessionManager.currentProfile?.name ?? "Unknown")")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
+                                .font(.system(size: 12, weight: .regular))
+                                .foregroundColor(Color(hex: "#64748b"))
                         }
                         
                         Text("Test NFC triggers without physical cards")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
+                            .font(.system(size: 15, weight: .regular))
+                            .foregroundColor(Color(hex: "#64748b"))
                         
                         VStack(spacing: 8) {
                             Button("🚀 Simulate NFC Start") {
@@ -2109,8 +2120,8 @@ struct SettingsView: View {
                             }
                             .frame(maxWidth: .infinity)
                             .padding()
-                            .background(Color.blue.opacity(0.1))
-                            .foregroundColor(.blue)
+                            .background(Color(hex: "#5a9fd4").opacity(0.1))
+                            .foregroundColor(Color(hex: "#5a9fd4"))
                             .cornerRadius(8)
                             
                             Button("🔄 Simulate NFC Toggle") {
@@ -2118,8 +2129,8 @@ struct SettingsView: View {
                             }
                             .frame(maxWidth: .infinity)
                             .padding()
-                            .background(Color.green.opacity(0.1))
-                            .foregroundColor(.green)
+                            .background(Color(hex: "#10b981").opacity(0.1))
+                            .foregroundColor(Color(hex: "#10b981"))
                             .cornerRadius(8)
                             
                             Button("☕ Simulate NFC Break") {
@@ -2127,8 +2138,8 @@ struct SettingsView: View {
                             }
                             .frame(maxWidth: .infinity)
                             .padding()
-                            .background(Color.orange.opacity(0.1))
-                            .foregroundColor(.orange)
+                            .background(Color(hex: "#f59e0b").opacity(0.1))
+                            .foregroundColor(Color(hex: "#f59e0b"))
                             .cornerRadius(8)
                         }
                     }
@@ -2145,8 +2156,8 @@ struct SettingsView: View {
                 Section("NFC Setup Instructions") {
                     VStack(alignment: .leading, spacing: 12) {
                         Text("Physical NFC Card Setup")
-                            .font(.headline)
-                            .fontWeight(.semibold)
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundColor(Color(hex: "#2c3e50"))
                         
                         VStack(alignment: .leading, spacing: 8) {
                             HStack(alignment: .top) {
@@ -2177,8 +2188,8 @@ struct SettingsView: View {
                                 Text("Works on iPhone Xs and later")
                             }
                         }
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
+                        .font(.system(size: 15, weight: .regular))
+                        .foregroundColor(Color(hex: "#64748b"))
                     }
                     .padding(.vertical, 8)
                 }
@@ -2188,13 +2199,14 @@ struct SettingsView: View {
                         Text("FocusKey helps you stay focused by blocking distracting apps using Apple's Screen Time APIs.")
                         
                         Text("All data stays on your device. No tracking, no cloud storage without your permission.")
-                            .font(.footnote)
-                            .foregroundColor(.secondary)
+                            .font(.system(size: 13, weight: .regular))
+                            .foregroundColor(Color(hex: "#64748b"))
                     }
                     .padding(.vertical, 8)
                 }
             }
             .navigationTitle("Settings")
+            .background(Color(hex: "#f8fafc"))
             .alert("NFC Simulation", isPresented: $showingAlert) {
                 Button("OK") { }
             } message: {
@@ -2313,9 +2325,12 @@ struct InfoRow: View {
     var body: some View {
         HStack {
             Text(title)
+                .font(.system(size: 16, weight: .regular))
+                .foregroundColor(Color(hex: "#2c3e50"))
             Spacer()
             Text(value)
-                .foregroundColor(.secondary)
+                .font(.system(size: 16, weight: .regular))
+                .foregroundColor(Color(hex: "#64748b"))
         }
     }
 }
