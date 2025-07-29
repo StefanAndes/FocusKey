@@ -868,7 +868,7 @@ struct HistoryView: View {
                     if !todaySessions.isEmpty {
                         Section("Today") {
                                                          ForEach(todaySessions, id: \.id) { session in
-                                 Text("📊 \(session.profileName) - \(formatSessionTime(session))")
+                                 SessionHistoryCard(session: session)
                              }
                         }
                     }
@@ -881,7 +881,7 @@ struct HistoryView: View {
                     if !thisWeekSessions.isEmpty {
                         Section("This Week") {
                                                          ForEach(thisWeekSessions, id: \.id) { session in
-                                 Text("📊 \(session.profileName) - \(formatSessionTime(session))")
+                                 SessionHistoryCard(session: session)
                              }
                         }
                     }
@@ -893,15 +893,13 @@ struct HistoryView: View {
                     if !olderSessions.isEmpty {
                         Section("Older") {
                                                          ForEach(olderSessions, id: \.id) { session in
-                                 Text("📊 \(session.profileName) - \(formatSessionTime(session))")
+                                 SessionHistoryCard(session: session)
                              }
                         }
                     }
                     
-                                         // Weekly Stats - Coming Soon
-                     Section("This Week's Stats") {
-                         Text("📈 \(sessions.count) total sessions")
-                     }
+                                         // Weekly Stats Dashboard
+                     WeeklyStatsSection(sessions: sessions)
                 }
                 .navigationTitle("History")
             }
@@ -915,7 +913,355 @@ struct HistoryView: View {
     }
 }
 
-// TODO: SessionHistoryRow, WeeklyStatsView, and StatCard will be re-added when SwiftData is fully integrated
+struct SessionHistoryCard: View {
+    let session: SessionHistory
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            // Header with profile info and status
+            HStack(alignment: .top) {
+                // Profile Icon
+                Image(systemName: profileIcon(for: session.profileName))
+                    .font(.title2)
+                    .foregroundColor(profileColor(for: session.profileName))
+                    .frame(width: 36, height: 36)
+                    .background(
+                        Circle()
+                            .fill(profileColor(for: session.profileName).opacity(0.15))
+                    )
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        Text(session.profileName)
+                            .font(.headline)
+                            .fontWeight(.semibold)
+                        
+                        Spacer()
+                        
+                        if session.isActive {
+                            HStack(spacing: 4) {
+                                Circle()
+                                    .fill(Color.green)
+                                    .frame(width: 8, height: 8)
+                                Text("Active")
+                                    .font(.caption)
+                                    .fontWeight(.medium)
+                                    .foregroundColor(.green)
+                            }
+                        } else {
+                            HStack(spacing: 4) {
+                                Image(systemName: session.wasCompletedNaturally ? "checkmark.circle.fill" : "xmark.circle.fill")
+                                    .font(.caption)
+                                    .foregroundColor(session.wasCompletedNaturally ? .green : .orange)
+                                
+                                Text(session.wasCompletedNaturally ? "Completed" : "Interrupted")
+                                    .font(.caption)
+                                    .foregroundColor(session.wasCompletedNaturally ? .green : .orange)
+                            }
+                        }
+                    }
+                    
+                    Text(formatTimeRange(session.startTime, session.endTime))
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                    
+                    Text(triggerMethodText(session.triggerMethod))
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+            
+            // Session Stats
+            HStack(spacing: 20) {
+                StatItem(
+                    icon: "clock.fill",
+                    title: "Duration",
+                    value: formatDuration(session.totalSessionTime),
+                    color: .blue
+                )
+                
+                StatItem(
+                    icon: "target",
+                    title: "Focus Time",
+                    value: formatDuration(session.totalFocusTime),
+                    color: .green
+                )
+                
+                if session.breaksTaken > 0 {
+                    StatItem(
+                        icon: "cup.and.saucer.fill",
+                        title: "Breaks",
+                        value: "\(session.breaksTaken)",
+                        color: .orange
+                    )
+                }
+                
+                Spacer()
+            }
+            
+            // Focus Efficiency Progress Bar
+            if !session.isActive && session.totalSessionTime > 60 {
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack {
+                        Text("Focus Efficiency")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        
+                        Spacer()
+                        
+                        Text("\(Int(session.focusEfficiency * 100))%")
+                            .font(.caption)
+                            .fontWeight(.medium)
+                            .foregroundColor(efficiencyColor(session.focusEfficiency))
+                    }
+                    
+                    ProgressView(value: session.focusEfficiency)
+                        .progressViewStyle(LinearProgressViewStyle(tint: efficiencyColor(session.focusEfficiency)))
+                        .scaleEffect(y: 0.8)
+                }
+            }
+        }
+        .padding(.vertical, 8)
+    }
+    
+    private func profileIcon(for profileName: String) -> String {
+        switch profileName {
+        case "Work": return "briefcase.fill"
+        case "Study": return "book.fill"
+        case "Sleep": return "moon.fill"
+        default: return "circle.fill"
+        }
+    }
+    
+    private func profileColor(for profileName: String) -> Color {
+        switch profileName {
+        case "Work": return .blue
+        case "Study": return .purple
+        case "Sleep": return .indigo
+        default: return .gray
+        }
+    }
+    
+    private func formatTimeRange(_ start: Date, _ end: Date?) -> String {
+        let formatter = DateFormatter()
+        formatter.timeStyle = .short
+        
+        if let end = end {
+            return "\(formatter.string(from: start)) - \(formatter.string(from: end))"
+        } else {
+            return "Started \(formatter.string(from: start))"
+        }
+    }
+    
+    private func formatDuration(_ duration: TimeInterval) -> String {
+        let hours = Int(duration) / 3600
+        let minutes = Int(duration) % 3600 / 60
+        
+        if hours > 0 {
+            return "\(hours)h \(minutes)m"
+        } else {
+            return "\(minutes)m"
+        }
+    }
+    
+    private func triggerMethodText(_ method: String) -> String {
+        switch method {
+        case "nfc": return "🏷️ Started via NFC"
+        case "manual": return "📱 Started manually"
+        case "scheduled": return "⏰ Auto-started"
+        default: return "📱 Started manually"
+        }
+    }
+    
+    private func efficiencyColor(_ efficiency: Double) -> Color {
+        if efficiency >= 0.8 { return .green }
+        else if efficiency >= 0.6 { return .orange }
+        else { return .red }
+    }
+}
+
+struct StatItem: View {
+    let icon: String
+    let title: String
+    let value: String
+    let color: Color
+    
+    var body: some View {
+        HStack(spacing: 6) {
+            Image(systemName: icon)
+                .font(.caption)
+                .foregroundColor(color)
+                .frame(width: 14)
+            
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                
+                Text(value)
+                    .font(.caption)
+                    .fontWeight(.semibold)
+            }
+        }
+    }
+}
+
+struct WeeklyStatsSection: View {
+    let sessions: [SessionHistory]
+    
+    private var weeklyStats: (totalTime: TimeInterval, totalFocusTime: TimeInterval, completedSessions: Int, averageEfficiency: Double, totalBreaks: Int) {
+        let thisWeekSessions = sessions.filter { 
+            Calendar.current.isDate($0.startTime, equalTo: Date(), toGranularity: .weekOfYear) && 
+            $0.endTime != nil 
+        }
+        
+        let totalTime = thisWeekSessions.reduce(0) { $0 + $1.totalSessionTime }
+        let totalFocusTime = thisWeekSessions.reduce(0) { $0 + $1.totalFocusTime }
+        let completedSessions = thisWeekSessions.count
+        let averageEfficiency = thisWeekSessions.isEmpty ? 0 : thisWeekSessions.reduce(0) { $0 + $1.focusEfficiency } / Double(thisWeekSessions.count)
+        let totalBreaks = thisWeekSessions.reduce(0) { $0 + $1.breaksTaken }
+        
+        return (totalTime, totalFocusTime, completedSessions, averageEfficiency, totalBreaks)
+    }
+    
+    var body: some View {
+        Section {
+            VStack(spacing: 16) {
+                // Header
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("This Week's Focus")
+                            .font(.headline)
+                            .fontWeight(.bold)
+                        
+                        Text("Your productivity at a glance")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    
+                    Spacer()
+                    
+                    Image(systemName: "chart.line.uptrend.xyaxis")
+                        .font(.title2)
+                        .foregroundColor(.blue)
+                }
+                
+                // Stats Grid
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 2), spacing: 16) {
+                    WeeklyStatCard(
+                        icon: "clock.fill",
+                        title: "Total Time",
+                        value: formatDuration(weeklyStats.totalTime),
+                        subtitle: "\(formatDuration(weeklyStats.totalFocusTime)) focused",
+                        color: .blue,
+                        progress: weeklyStats.totalTime > 0 ? weeklyStats.totalFocusTime / weeklyStats.totalTime : 0
+                    )
+                    
+                    WeeklyStatCard(
+                        icon: "target",
+                        title: "Sessions",
+                        value: "\(weeklyStats.completedSessions)",
+                        subtitle: weeklyStats.completedSessions > 0 ? "avg \(Int(weeklyStats.averageEfficiency * 100))% efficiency" : "No sessions yet",
+                        color: .green,
+                        progress: weeklyStats.averageEfficiency
+                    )
+                    
+                    WeeklyStatCard(
+                        icon: "cup.and.saucer.fill",
+                        title: "Breaks",
+                        value: "\(weeklyStats.totalBreaks)",
+                        subtitle: weeklyStats.completedSessions > 0 ? "avg \(String(format: "%.1f", Double(weeklyStats.totalBreaks) / Double(weeklyStats.completedSessions))) per session" : "—",
+                        color: .orange,
+                        progress: weeklyStats.totalBreaks > 0 ? min(1.0, Double(weeklyStats.totalBreaks) / 10.0) : 0
+                    )
+                    
+                    WeeklyStatCard(
+                        icon: "flame.fill",
+                        title: "Efficiency",
+                        value: "\(Int(weeklyStats.averageEfficiency * 100))%",
+                        subtitle: efficiencyDescription(weeklyStats.averageEfficiency),
+                        color: efficiencyColor(weeklyStats.averageEfficiency),
+                        progress: weeklyStats.averageEfficiency
+                    )
+                }
+            }
+            .padding(.vertical, 8)
+        }
+    }
+    
+    private func formatDuration(_ duration: TimeInterval) -> String {
+        let hours = Int(duration) / 3600
+        let minutes = Int(duration) % 3600 / 60
+        
+        if hours > 0 {
+            return "\(hours)h \(minutes)m"
+        } else if minutes > 0 {
+            return "\(minutes)m"
+        } else {
+            return "0m"
+        }
+    }
+    
+    private func efficiencyColor(_ efficiency: Double) -> Color {
+        if efficiency >= 0.8 { return .green }
+        else if efficiency >= 0.6 { return .orange }
+        else { return .red }
+    }
+    
+    private func efficiencyDescription(_ efficiency: Double) -> String {
+        if efficiency >= 0.9 { return "Excellent!" }
+        else if efficiency >= 0.8 { return "Great focus" }
+        else if efficiency >= 0.6 { return "Good effort" }
+        else if efficiency > 0 { return "Room to improve" }
+        else { return "No data yet" }
+    }
+}
+
+struct WeeklyStatCard: View {
+    let icon: String
+    let title: String
+    let value: String
+    let subtitle: String
+    let color: Color
+    let progress: Double
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Image(systemName: icon)
+                    .font(.title3)
+                    .foregroundColor(color)
+                
+                Spacer()
+                
+                Text(value)
+                    .font(.title2)
+                    .fontWeight(.bold)
+                    .foregroundColor(color)
+            }
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title)
+                    .font(.caption)
+                    .fontWeight(.medium)
+                    .foregroundColor(.primary)
+                
+                Text(subtitle)
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                    .lineLimit(1)
+            }
+            
+            // Progress indicator
+            ProgressView(value: min(1.0, max(0.0, progress)))
+                .progressViewStyle(LinearProgressViewStyle(tint: color))
+                .scaleEffect(y: 0.6)
+        }
+        .padding()
+        .background(color.opacity(0.08))
+        .cornerRadius(12)
+    }
+}
 
 struct SimpleProfileCreationView: View {
     @Binding var profiles: [FocusProfile]
