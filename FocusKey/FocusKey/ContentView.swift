@@ -94,17 +94,36 @@ struct OnboardingView: View {
     let isRequesting: Bool
     
     var body: some View {
-        VStack(spacing: FocusKeyDesign.Spacing.xxxl) {
+        VStack(spacing: 48) {
             Spacer()
             
-            // FocusKey Logo
-            FocusKeyLogo(variant: .blue, size: .large)
+            // FocusKey Branded Logo
+            VStack(spacing: 16) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 16)
+                        .fill(LinearGradient(
+                            colors: [Color(hex: "#7bb3d3"), Color(hex: "#5a9fd4")],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ))
+                        .frame(width: 64, height: 64)
+                    
+                    Circle()
+                        .stroke(Color.white.opacity(0.8), lineWidth: 4)
+                        .frame(width: 37, height: 37)
+                }
+                
+                Text("FocusKey")
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundColor(Color(hex: "#2c3e50"))
+                    .tracking(-0.5)
+            }
             
             // Description
-            VStack(spacing: FocusKeyDesign.Spacing.xl) {
+            VStack(spacing: 24) {
                 Text("Focus with Purpose")
-                    .font(FocusKeyDesign.Typography.h2)
-                    .foregroundColor(FocusKeyDesign.Colors.textPrimary)
+                    .font(.system(size: 24, weight: .semibold))
+                    .foregroundColor(Color(hex: "#2c3e50"))
                 
                 VStack(alignment: .leading, spacing: 12) {
                     FeatureRow(
@@ -138,8 +157,8 @@ struct OnboardingView: View {
             // Authorization Request
             VStack(spacing: 16) {
                 Text("FocusKey uses Apple's Screen Time features to block distractions. You'll be asked to allow this.")
-                    .font(FocusKeyDesign.Typography.caption)
-                    .foregroundColor(FocusKeyDesign.Colors.textSecondary)
+                    .font(.system(size: 14, weight: .regular))
+                    .foregroundColor(Color(hex: "#64748b"))
                     .multilineTextAlignment(.center)
                     .padding(.horizontal)
                 
@@ -153,13 +172,23 @@ struct OnboardingView: View {
                         Text(isRequesting ? "Requesting Permission..." : "Enable FocusKey")
                     }
                 }
-                .buttonStyle(FocusKeyButtonStyle(variant: .primary, size: .large))
                 .frame(maxWidth: .infinity)
+                .padding()
+                .background(LinearGradient(
+                    colors: [Color(hex: "#7bb3d3"), Color(hex: "#5a9fd4")],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                ))
+                .foregroundColor(.white)
+                .cornerRadius(12)
                 .disabled(isRequesting)
+                .scaleEffect(isRequesting ? 0.98 : 1.0)
+                .animation(.spring(response: 0.6, dampingFraction: 0.8), value: isRequesting)
                 .padding(.horizontal)
             }
         }
         .padding()
+        .background(Color(hex: "#f8fafc"))
     }
 }
 
@@ -172,17 +201,17 @@ struct FeatureRow: View {
         HStack(alignment: .top, spacing: 12) {
             Image(systemName: icon)
                 .font(.title3)
-                .foregroundColor(.blue)
+                .foregroundColor(Color(hex: "#5a9fd4"))
                 .frame(width: 24)
             
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)
-                    .font(.headline)
-                    .fontWeight(.medium)
+                    .font(.system(size: 17, weight: .medium))
+                    .foregroundColor(Color(hex: "#2c3e50"))
                 
                 Text(description)
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
+                    .font(.system(size: 15, weight: .regular))
+                    .foregroundColor(Color(hex: "#64748b"))
             }
         }
     }
@@ -190,22 +219,31 @@ struct FeatureRow: View {
 
 struct AuthorizationDeniedView: View {
     var body: some View {
-        VStack(spacing: 30) {
+        VStack(spacing: 32) {
             Spacer()
             
-            Image(systemName: "exclamationmark.triangle")
-                .font(.system(size: 80))
-                .foregroundColor(.orange)
+            // Warning Icon with FocusKey Branding
+            ZStack {
+                Circle()
+                    .fill(Color(hex: "#f59e0b").opacity(0.1))
+                    .frame(width: 120, height: 120)
+                
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.system(size: 60, weight: .medium))
+                    .foregroundColor(Color(hex: "#f59e0b"))
+            }
             
             VStack(spacing: 16) {
-                Text("Permission Required")
-                    .font(.title)
-                    .fontWeight(.bold)
+                Text("Screen Time Permission Required")
+                    .font(.system(size: 24, weight: .semibold))
+                    .foregroundColor(Color(hex: "#2c3e50"))
+                    .multilineTextAlignment(.center)
                 
                 Text("FocusKey needs Screen Time permission to block apps during focus sessions.")
-                    .font(.body)
+                    .font(.system(size: 16, weight: .regular))
                     .multilineTextAlignment(.center)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(Color(hex: "#64748b"))
+                    .padding(.horizontal)
             }
             
             VStack(spacing: 12) {
@@ -235,11 +273,16 @@ struct AuthorizationDeniedView: View {
             }
             .padding()
             .frame(maxWidth: .infinity)
-            .background(Color.blue)
+            .background(LinearGradient(
+                colors: [Color(hex: "#7bb3d3"), Color(hex: "#5a9fd4")],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            ))
             .foregroundColor(.white)
             .cornerRadius(12)
         }
         .padding()
+        .background(Color(hex: "#f8fafc"))
     }
 }
 
@@ -248,28 +291,30 @@ struct MainAppView: View {
         TabView {
             FocusProfilesView()
                 .tabItem {
-                    Image(systemName: "circle.grid.3x3")
+                    Image(systemName: "person.3.fill")
                     Text("Profiles")
                 }
             
             SessionView()
                 .tabItem {
-                    Image(systemName: "timer")
+                    Image(systemName: "target")
                     Text("Focus")
                 }
             
             HistoryView()
                 .tabItem {
-                    Image(systemName: "chart.bar")
+                    Image(systemName: "chart.line.uptrend.xyaxis")
                     Text("History")
                 }
             
             SettingsView()
                 .tabItem {
-                    Image(systemName: "gear")
+                    Image(systemName: "gearshape.fill")
                     Text("Settings")
                 }
         }
+        .background(Color(hex: "#f8fafc"))
+        .accentColor(Color(hex: "#5a9fd4"))
     }
 }
 
@@ -531,6 +576,7 @@ struct SessionView: View {
             }
             .padding()
             .navigationTitle("Focus")
+            .background(Color(hex: "#f8fafc"))
         }
         .sheet(isPresented: $showingProfilePicker) {
             ProfilePickerSheet(
@@ -576,13 +622,13 @@ struct IdleSessionView: View {
         VStack(spacing: 40) {
             Spacer()
             
-            // Animated focus illustration
+            // FocusKey NFC Animation
             VStack(spacing: 20) {
                 ZStack {
-                    // Floating background circles
+                    // Floating background circles with FocusKey colors
                     ForEach(0..<3, id: \.self) { index in
                         Circle()
-                            .fill(Color.blue.opacity(0.1))
+                            .fill(Color(hex: "#5a9fd4").opacity(0.1))
                             .frame(width: 120 - CGFloat(index * 20), height: 120 - CGFloat(index * 20))
                             .scaleEffect(floatingAnimation ? 1.1 : 0.9)
                             .animation(
@@ -593,22 +639,31 @@ struct IdleSessionView: View {
                             )
                     }
                     
-                    // Center target icon
-                    Image(systemName: "target")
-                        .font(.system(size: 48))
-                        .foregroundColor(.blue)
-                        .scaleEffect(floatingAnimation ? 1.05 : 1.0)
-                        .animation(.easeInOut(duration: 2).repeatForever(autoreverses: true), value: floatingAnimation)
+                    // FocusKey branded center icon
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(LinearGradient(
+                                colors: [Color(hex: "#7bb3d3"), Color(hex: "#5a9fd4")],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ))
+                            .frame(width: 48, height: 48)
+                        
+                        Circle()
+                            .stroke(Color.white.opacity(0.8), lineWidth: 3)
+                            .frame(width: 28, height: 28)
+                    }
+                    .scaleEffect(floatingAnimation ? 1.05 : 1.0)
+                    .animation(.easeInOut(duration: 2).repeatForever(autoreverses: true), value: floatingAnimation)
                 }
                 
                 Text("Ready to Focus")
-                    .font(.largeTitle)
-                    .fontWeight(.bold)
-                    .foregroundColor(.primary)
+                    .font(.system(size: 28, weight: .semibold))
+                    .foregroundColor(Color(hex: "#2c3e50"))
                 
                 Text("Choose a profile to start your focus session\nand block distracting apps")
-                    .font(.body)
-                    .foregroundColor(.secondary)
+                    .font(.system(size: 16, weight: .regular))
+                    .foregroundColor(Color(hex: "#64748b"))
                     .multilineTextAlignment(.center)
                     .lineSpacing(4)
             }
@@ -617,14 +672,14 @@ struct IdleSessionView: View {
             VStack(alignment: .leading, spacing: 16) {
                 HStack {
                     Text("Quick Start")
-                        .font(.headline)
-                        .fontWeight(.bold)
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundColor(Color(hex: "#2c3e50"))
                     
                     Spacer()
                     
                     Text("Tap to preview")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                        .font(.system(size: 12, weight: .regular))
+                        .foregroundColor(Color(hex: "#64748b"))
                 }
                 
                 LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: min(3, profiles.count)), spacing: 12) {
@@ -640,7 +695,7 @@ struct IdleSessionView: View {
                 }
             }
             .padding()
-            .background(Color(red: 0.98, green: 0.98, blue: 1.0))
+            .background(Color(hex: "#f5f1e8").opacity(0.5))
             .cornerRadius(20)
             
             Spacer()
@@ -659,7 +714,7 @@ struct IdleSessionView: View {
                     .padding(.vertical, 16)
                     .background(
                         LinearGradient(
-                            gradient: Gradient(colors: [Color.blue, Color.blue.opacity(0.8)]),
+                            colors: [Color(hex: "#7bb3d3"), Color(hex: "#5a9fd4")],
                             startPoint: .leading,
                             endPoint: .trailing
                         )
@@ -667,13 +722,13 @@ struct IdleSessionView: View {
                     .foregroundColor(.white)
                     .cornerRadius(16)
                     .font(.headline)
-                    .shadow(color: Color.blue.opacity(0.3), radius: 8, x: 0, y: 4)
+                    .shadow(color: Color(hex: "#5a9fd4").opacity(0.3), radius: 8, x: 0, y: 4)
                 }
                 
                 if selectedQuickProfile != nil {
                     Text("Or start with \(selectedQuickProfile?.name ?? "") profile above")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+                        .font(.system(size: 12, weight: .regular))
+                        .foregroundColor(Color(hex: "#64748b"))
                 }
             }
         }
@@ -2262,6 +2317,34 @@ struct InfoRow: View {
             Text(value)
                 .foregroundColor(.secondary)
         }
+    }
+}
+
+// MARK: - Color Extension
+extension Color {
+    init(hex: String) {
+        let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
+        var int: UInt64 = 0
+        Scanner(string: hex).scanHexInt64(&int)
+        let a, r, g, b: UInt64
+        switch hex.count {
+        case 3:
+            (a, r, g, b) = (255, (int >> 8) * 17, (int >> 4 & 0xF) * 17, (int & 0xF) * 17)
+        case 6:
+            (a, r, g, b) = (255, int >> 16, int >> 8 & 0xFF, int & 0xFF)
+        case 8:
+            (a, r, g, b) = (int >> 24, int >> 16 & 0xFF, int >> 8 & 0xFF, int & 0xFF)
+        default:
+            (a, r, g, b) = (1, 1, 1, 0)
+        }
+
+        self.init(
+            .sRGB,
+            red: Double(r) / 255,
+            green: Double(g) / 255,
+            blue:  Double(b) / 255,
+            opacity: Double(a) / 255
+        )
     }
 }
 
