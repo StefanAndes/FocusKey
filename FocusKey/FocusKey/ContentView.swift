@@ -287,14 +287,52 @@ struct FocusProfilesView: View {
     @State private var profiles: [FocusProfile] = FocusProfile.defaultProfiles
     @State private var selectedProfile: FocusProfile?
     @State private var showingAppPicker = false
+    @State private var showingCreateProfile = false
+    @State private var editingProfile: FocusProfile?
     
     var body: some View {
         NavigationView {
             List {
-                ForEach(profiles) { profile in
-                    ProfileRow(profile: profile) {
-                        selectedProfile = profile
-                        showingAppPicker = true
+                Section("Your Profiles") {
+                    ForEach(profiles) { profile in
+                        ProfileRow(profile: profile, onTapSelectApps: {
+                            selectedProfile = profile
+                            showingAppPicker = true
+                        }, onEdit: {
+                            editingProfile = profile
+                        }, onDelete: {
+                            deleteProfile(profile)
+                        })
+                    }
+                    .onDelete(perform: deleteProfiles)
+                }
+                
+                Section {
+                    Button(action: {
+                        showingCreateProfile = true
+                    }) {
+                        HStack {
+                            Image(systemName: "plus.circle.fill")
+                                .foregroundColor(.blue)
+                                .font(.title2)
+                            
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Create New Profile")
+                                    .font(.headline)
+                                    .foregroundColor(.primary)
+                                
+                                Text("Design a custom focus profile")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            
+                            Spacer()
+                            
+                            Image(systemName: "chevron.right")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        .padding(.vertical, 4)
                     }
                 }
             }
@@ -316,12 +354,30 @@ struct FocusProfilesView: View {
             )
         )
         #endif
+        .sheet(isPresented: $showingCreateProfile) {
+            SimpleProfileCreationView(profiles: $profiles)
+        }
+        .alert("Edit Profile", isPresented: .constant(editingProfile != nil)) {
+            Button("Close") { editingProfile = nil }
+        } message: {
+            Text("Profile editing coming soon! For now, you can select apps to block and delete profiles via swipe.")
+        }
+    }
+    
+    private func deleteProfile(_ profile: FocusProfile) {
+        profiles.removeAll { $0.id == profile.id }
+    }
+    
+    private func deleteProfiles(offsets: IndexSet) {
+        profiles.remove(atOffsets: offsets)
     }
 }
 
 struct ProfileRow: View {
     let profile: FocusProfile
     let onTapSelectApps: () -> Void
+    let onEdit: () -> Void
+    let onDelete: () -> Void
     
     var body: some View {
         VStack(spacing: 16) {
@@ -410,10 +466,10 @@ struct ProfileRow: View {
                     .cornerRadius(8)
                 }
                 
-                Button(action: {}) {
+                Button(action: onEdit) {
                     HStack {
                         Image(systemName: "gear")
-                        Text("Settings")
+                        Text("Edit")
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 8)
@@ -860,6 +916,148 @@ struct HistoryView: View {
 }
 
 // TODO: SessionHistoryRow, WeeklyStatsView, and StatCard will be re-added when SwiftData is fully integrated
+
+struct SimpleProfileCreationView: View {
+    @Binding var profiles: [FocusProfile]
+    @Environment(\.presentationMode) var presentationMode
+    
+    @State private var name = ""
+    @State private var description = ""
+    @State private var selectedIcon = "circle.fill"
+    @State private var selectedColor = Color.blue
+    @State private var allowedBreaks = 2
+    @State private var breakDuration = 5
+    
+    private let availableIcons = [
+        "briefcase.fill", "book.fill", "moon.fill", "gamecontroller.fill",
+        "music.note", "paintbrush.fill", "dumbbell.fill", "heart.fill"
+    ]
+    
+    private let availableColors: [Color] = [
+        .blue, .purple, .pink, .red, .orange, .yellow, .green, .mint
+    ]
+    
+    var body: some View {
+        NavigationView {
+            Form {
+                Section("Profile Details") {
+                    TextField("Profile Name", text: $name)
+                    TextField("Description", text: $description)
+                }
+                
+                Section("Appearance") {
+                    VStack(alignment: .leading) {
+                        Text("Icon")
+                            .font(.headline)
+                        
+                        LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 4), spacing: 16) {
+                            ForEach(availableIcons, id: \.self) { icon in
+                                Button(action: {
+                                    selectedIcon = icon
+                                }) {
+                                    Image(systemName: icon)
+                                        .font(.title2)
+                                        .foregroundColor(selectedIcon == icon ? selectedColor : .gray)
+                                        .frame(width: 44, height: 44)
+                                        .background(
+                                            Circle()
+                                                .fill(selectedIcon == icon ? selectedColor.opacity(0.2) : Color.clear)
+                                        )
+                                }
+                                .buttonStyle(PlainButtonStyle())
+                            }
+                        }
+                    }
+                    
+                    VStack(alignment: .leading) {
+                        Text("Color")
+                            .font(.headline)
+                        
+                        LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 4), spacing: 16) {
+                            ForEach(availableColors, id: \.self) { color in
+                                Button(action: {
+                                    selectedColor = color
+                                }) {
+                                    Circle()
+                                        .fill(color)
+                                        .frame(width: 32, height: 32)
+                                        .overlay(
+                                            Circle()
+                                                .stroke(selectedColor == color ? Color.primary : Color.clear, lineWidth: 3)
+                                        )
+                                }
+                                .buttonStyle(PlainButtonStyle())
+                            }
+                        }
+                    }
+                }
+                
+                Section("Settings") {
+                    Stepper("Allowed Breaks: \(allowedBreaks)", value: $allowedBreaks, in: 0...5)
+                    
+                    if allowedBreaks > 0 {
+                        Stepper("Break Duration: \(breakDuration) min", value: $breakDuration, in: 1...15)
+                    }
+                }
+                
+                Section("Preview") {
+                    HStack {
+                        Image(systemName: selectedIcon)
+                            .font(.title2)
+                            .foregroundColor(selectedColor)
+                            .frame(width: 32, height: 32)
+                        
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(name.isEmpty ? "My Focus Profile" : name)
+                                .font(.headline)
+                                .fontWeight(.semibold)
+                            
+                            Text(description.isEmpty ? "Custom focus profile" : description)
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                                .lineLimit(2)
+                        }
+                        
+                        Spacer()
+                    }
+                    .padding(.vertical, 4)
+                }
+            }
+            .navigationTitle("New Profile")
+            #if os(iOS)
+            .navigationBarTitleDisplayMode(.inline)
+            #endif
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") {
+                        presentationMode.wrappedValue.dismiss()
+                    }
+                }
+                
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Save") {
+                        saveProfile()
+                    }
+                    .disabled(name.isEmpty)
+                }
+            }
+        }
+    }
+    
+    private func saveProfile() {
+        let newProfile = FocusProfile(
+            name: name.isEmpty ? "My Focus Profile" : name,
+            icon: selectedIcon,
+            color: selectedColor,
+            description: description.isEmpty ? "Custom focus profile" : description,
+            allowedBreaks: allowedBreaks,
+            breakDuration: breakDuration
+        )
+        
+        profiles.append(newProfile)
+        presentationMode.wrappedValue.dismiss()
+    }
+}
 
 struct SettingsView: View {
     @EnvironmentObject var sessionManager: FocusSessionManager
