@@ -568,196 +568,512 @@ struct SessionView: View {
 struct IdleSessionView: View {
     let profiles: [FocusProfile]
     let onStartSession: () -> Void
+    @State private var floatingAnimation = false
+    @State private var selectedQuickProfile: FocusProfile?
     
     var body: some View {
-        VStack(spacing: 32) {
+        VStack(spacing: 40) {
             Spacer()
             
-            // Focus illustration
-            VStack(spacing: 16) {
-                Image(systemName: "target")
-                    .font(.system(size: 60))
-                    .foregroundColor(.blue)
+            // Animated focus illustration
+            VStack(spacing: 20) {
+                ZStack {
+                    // Floating background circles
+                    ForEach(0..<3, id: \.self) { index in
+                        Circle()
+                            .fill(Color.blue.opacity(0.1))
+                            .frame(width: 120 - CGFloat(index * 20), height: 120 - CGFloat(index * 20))
+                            .scaleEffect(floatingAnimation ? 1.1 : 0.9)
+                            .animation(
+                                .easeInOut(duration: 2 + Double(index))
+                                .repeatForever(autoreverses: true)
+                                .delay(Double(index) * 0.3),
+                                value: floatingAnimation
+                            )
+                    }
+                    
+                    // Center target icon
+                    Image(systemName: "target")
+                        .font(.system(size: 48))
+                        .foregroundColor(.blue)
+                        .scaleEffect(floatingAnimation ? 1.05 : 1.0)
+                        .animation(.easeInOut(duration: 2).repeatForever(autoreverses: true), value: floatingAnimation)
+                }
                 
                 Text("Ready to Focus")
-                    .font(.title)
+                    .font(.largeTitle)
                     .fontWeight(.bold)
+                    .foregroundColor(.primary)
                 
-                Text("Choose a profile to start blocking distracting apps")
+                Text("Choose a profile to start your focus session\nand block distracting apps")
                     .font(.body)
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
+                    .lineSpacing(4)
             }
             
-            // Quick profile previews
-            VStack(alignment: .leading, spacing: 12) {
-                Text("Available Profiles")
-                    .font(.headline)
-                    .fontWeight(.semibold)
+            // Quick profile selection cards
+            VStack(alignment: .leading, spacing: 16) {
+                HStack {
+                    Text("Quick Start")
+                        .font(.headline)
+                        .fontWeight(.bold)
+                    
+                    Spacer()
+                    
+                    Text("Tap to preview")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
                 
-                ForEach(profiles.prefix(3), id: \.id) { profile in
-                    HStack {
-                        Image(systemName: profile.icon)
-                            .foregroundColor(profile.color)
-                            .frame(width: 20)
-                        
-                        Text(profile.name)
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-                        
-                        Spacer()
-                        
-                        Text("\(profile.allowedBreaks) breaks")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: min(3, profiles.count)), spacing: 12) {
+                    ForEach(profiles.prefix(3), id: \.id) { profile in
+                        QuickProfileCard(
+                            profile: profile,
+                            isSelected: selectedQuickProfile?.id == profile.id,
+                            onTap: {
+                                selectedQuickProfile = profile
+                            }
+                        )
                     }
-                    .padding(.vertical, 4)
                 }
             }
             .padding()
-            .background(Color(red: 0.95, green: 0.95, blue: 0.97))
-            .cornerRadius(12)
+            .background(Color(red: 0.98, green: 0.98, blue: 1.0))
+            .cornerRadius(20)
             
             Spacer()
             
-            // Start button
-            Button(action: onStartSession) {
-                HStack {
-                    Image(systemName: "play.fill")
-                    Text("Start Focus Session")
+            // Enhanced start button
+            VStack(spacing: 12) {
+                Button(action: onStartSession) {
+                    HStack(spacing: 12) {
+                        Image(systemName: "play.circle.fill")
+                            .font(.title2)
+                        
+                        Text("Choose Profile & Start")
+                            .fontWeight(.semibold)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
+                    .background(
+                        LinearGradient(
+                            gradient: Gradient(colors: [Color.blue, Color.blue.opacity(0.8)]),
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .foregroundColor(.white)
+                    .cornerRadius(16)
+                    .font(.headline)
+                    .shadow(color: Color.blue.opacity(0.3), radius: 8, x: 0, y: 4)
                 }
-                .frame(maxWidth: .infinity)
-                .padding()
-                .background(Color.blue)
-                .foregroundColor(.white)
-                .cornerRadius(12)
-                .font(.headline)
+                
+                if selectedQuickProfile != nil {
+                    Text("Or start with \(selectedQuickProfile?.name ?? "") profile above")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
             }
         }
+        .onAppear {
+            floatingAnimation = true
+        }
+    }
+}
+
+struct QuickProfileCard: View {
+    let profile: FocusProfile
+    let isSelected: Bool
+    let onTap: () -> Void
+    
+    var body: some View {
+        Button(action: onTap) {
+            VStack(spacing: 8) {
+                // Profile icon with background
+                ZStack {
+                    Circle()
+                        .fill(profile.color.opacity(0.15))
+                        .frame(width: 44, height: 44)
+                    
+                    Image(systemName: profile.icon)
+                        .font(.title3)
+                        .foregroundColor(profile.color)
+                }
+                .scaleEffect(isSelected ? 1.1 : 1.0)
+                .animation(.spring(response: 0.3, dampingFraction: 0.6), value: isSelected)
+                
+                // Profile name
+                Text(profile.name)
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.primary)
+                    .lineLimit(1)
+                
+                // Break info
+                Text("\(profile.allowedBreaks) breaks")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            .padding(.vertical, 12)
+            .padding(.horizontal, 8)
+            .frame(maxWidth: .infinity)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(isSelected ? profile.color.opacity(0.1) : Color.clear)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(isSelected ? profile.color : Color.clear, lineWidth: 2)
+                    )
+            )
+        }
+        .buttonStyle(PlainButtonStyle())
     }
 }
 
 struct ActiveSessionView: View {
     @ObservedObject var sessionManager: FocusSessionManager
     @State private var currentTime = Date()
+    @State private var pulseAnimation = false
     
     private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
     var body: some View {
-        VStack(spacing: 32) {
+        VStack(spacing: 40) {
             Spacer()
             
-            // Session status
-            VStack(spacing: 16) {
-                if sessionManager.isOnBreak {
-                    Image(systemName: "pause.circle.fill")
-                        .font(.system(size: 60))
-                        .foregroundColor(.orange)
-                    
-                    Text("On Break")
-                        .font(.title)
-                        .fontWeight(.bold)
-                        .foregroundColor(.orange)
-                    
-                    if let timeRemaining = sessionManager.breakTimeRemaining {
-                        Text("Break ends in \(formatTime(timeRemaining))")
-                            .font(.headline)
-                            .foregroundColor(.secondary)
-                    }
-                } else {
-                    Image(systemName: "lock.shield.fill")
-                        .font(.system(size: 60))
-                        .foregroundColor(.green)
-                    
-                    Text("Focusing")
-                        .font(.title)
-                        .fontWeight(.bold)
-                        .foregroundColor(.green)
-                    
-                    if let profile = sessionManager.currentProfile {
-                        Text(profile.name + " Mode")
-                            .font(.headline)
-                            .foregroundColor(.secondary)
-                    }
-                }
+            // Circular Progress Ring
+            ZStack {
+                // Background circle
+                Circle()
+                    .stroke(Color.gray.opacity(0.2), lineWidth: 12)
+                    .frame(width: 200, height: 200)
                 
-                // Session duration
-                if let duration = sessionManager.sessionDuration {
-                    Text("Session: \(formatTime(duration))")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
+                // Progress circle
+                Circle()
+                    .trim(from: 0, to: sessionProgress)
+                    .stroke(
+                        sessionManager.isOnBreak ? Color.orange : (sessionManager.currentProfile?.color ?? .blue),
+                        style: StrokeStyle(lineWidth: 12, lineCap: .round)
+                    )
+                    .frame(width: 200, height: 200)
+                    .rotationEffect(.degrees(-90))
+                    .animation(.easeInOut(duration: 1), value: sessionProgress)
+                
+                // Center content
+                VStack(spacing: 8) {
+                    if sessionManager.isOnBreak {
+                        Image(systemName: "cup.and.saucer.fill")
+                            .font(.system(size: 32))
+                            .foregroundColor(.orange)
+                            .scaleEffect(pulseAnimation ? 1.1 : 1.0)
+                            .animation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true), value: pulseAnimation)
+                        
+                        Text("Break")
+                            .font(.title2)
+                            .fontWeight(.bold)
+                            .foregroundColor(.orange)
+                        
+                        if let timeRemaining = sessionManager.breakTimeRemaining {
+                            Text(formatTime(timeRemaining))
+                                .font(.headline)
+                                .fontWeight(.semibold)
+                                .foregroundColor(.orange)
+                        }
+                    } else {
+                        Image(systemName: sessionManager.currentProfile?.icon ?? "target")
+                            .font(.system(size: 32))
+                            .foregroundColor(sessionManager.currentProfile?.color ?? .blue)
+                            .scaleEffect(pulseAnimation ? 1.05 : 1.0)
+                            .animation(.easeInOut(duration: 2).repeatForever(autoreverses: true), value: pulseAnimation)
+                        
+                        Text("Focusing")
+                            .font(.title2)
+                            .fontWeight(.bold)
+                            .foregroundColor(sessionManager.currentProfile?.color ?? .blue)
+                        
+                        if let duration = sessionManager.sessionDuration {
+                            Text(formatTime(duration))
+                                .font(.title3)
+                                .fontWeight(.semibold)
+                                .foregroundColor(.primary)
+                        }
+                    }
                 }
             }
             
-            // Break info
-            if let profile = sessionManager.currentProfile, !sessionManager.isOnBreak {
-                VStack(spacing: 12) {
-                    Text("Breaks")
-                        .font(.headline)
-                        .fontWeight(.semibold)
-                    
-                    HStack(spacing: 16) {
-                        Text("Used: \(sessionManager.breaksUsed)/\(profile.allowedBreaks)")
-                            .font(.subheadline)
+            // Profile and Status Info
+            VStack(spacing: 16) {
+                if let profile = sessionManager.currentProfile {
+                    HStack {
+                        Image(systemName: profile.icon)
+                            .font(.title3)
+                            .foregroundColor(profile.color)
+                            .frame(width: 24, height: 24)
+                        
+                        Text(profile.name + " Profile")
+                            .font(.headline)
+                            .fontWeight(.semibold)
+                        
+                        Spacer()
+                        
+                        VStack(alignment: .trailing, spacing: 2) {
+                            Text("Session \(sessionNumber)")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            
+                            HStack(spacing: 4) {
+                                Circle()
+                                    .fill(sessionManager.isOnBreak ? Color.orange : Color.green)
+                                    .frame(width: 8, height: 8)
+                                
+                                Text(sessionManager.isOnBreak ? "On Break" : "Active")
+                                    .font(.caption)
+                                    .fontWeight(.medium)
+                                    .foregroundColor(sessionManager.isOnBreak ? .orange : .green)
+                            }
+                        }
+                    }
+                    .padding()
+                    .background(profile.color.opacity(0.08))
+                    .cornerRadius(16)
+                }
+            }
+            
+            // Break Statistics
+            if let profile = sessionManager.currentProfile {
+                HStack(spacing: 20) {
+                    // Breaks Used
+                    VStack(spacing: 8) {
+                        HStack(spacing: 4) {
+                            ForEach(0..<profile.allowedBreaks, id: \.self) { index in
+                                Circle()
+                                    .fill(index < sessionManager.breaksUsed ? Color.orange : Color.gray.opacity(0.3))
+                                    .frame(width: 12, height: 12)
+                                    .scaleEffect(index < sessionManager.breaksUsed ? 1.0 : 0.8)
+                                    .animation(.spring(response: 0.5, dampingFraction: 0.6), value: sessionManager.breaksUsed)
+                            }
+                        }
+                        
+                        Text("Breaks Used")
+                            .font(.caption)
                             .foregroundColor(.secondary)
                         
-                        if profile.breakDuration > 0 {
-                            Text("Duration: \(profile.breakDuration)m")
-                                .font(.subheadline)
+                        Text("\(sessionManager.breaksUsed)/\(profile.allowedBreaks)")
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                    }
+                    
+                    Spacer()
+                    
+                    // Break Duration
+                    if profile.allowedBreaks > 0 {
+                        VStack(spacing: 8) {
+                            Image(systemName: "timer")
+                                .font(.title3)
+                                .foregroundColor(.orange)
+                            
+                            Text("Break Time")
+                                .font(.caption)
                                 .foregroundColor(.secondary)
+                            
+                            Text("\(profile.breakDuration)m")
+                                .font(.caption)
+                                .fontWeight(.semibold)
                         }
+                        
+                        Spacer()
+                    }
+                    
+                    // Apps Blocked
+                    VStack(spacing: 8) {
+                        Image(systemName: "app.badge")
+                            .font(.title3)
+                            .foregroundColor(.red)
+                        
+                        Text("Apps Blocked")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        
+                        #if os(iOS)
+                        Text("\(profile.activitySelection.applicationTokens.count)")
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                        #else
+                        Text("iOS Only")
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                        #endif
                     }
                 }
                 .padding()
                 .background(Color(red: 0.95, green: 0.95, blue: 0.97))
-                .cornerRadius(12)
+                .cornerRadius(16)
             }
             
             Spacer()
             
-            // Action buttons
-            VStack(spacing: 12) {
+            // Enhanced Action buttons
+            VStack(spacing: 16) {
                 if !sessionManager.isOnBreak && sessionManager.canTakeBreak() {
-                    Button("Take a Break") {
+                    Button(action: {
                         Task {
                             try? await sessionManager.startBreak()
                         }
+                    }) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "cup.and.saucer.fill")
+                                .font(.title3)
+                            
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Take a Break")
+                                    .fontWeight(.semibold)
+                                
+                                Text("\(sessionManager.currentProfile?.breakDuration ?? 5) minutes")
+                                    .font(.caption)
+                                    .opacity(0.8)
+                            }
+                            
+                            Spacer()
+                            
+                            Image(systemName: "arrow.right.circle.fill")
+                                .font(.title3)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 16)
+                        .padding(.horizontal, 20)
+                        .background(
+                            LinearGradient(
+                                gradient: Gradient(colors: [Color.orange.opacity(0.15), Color.orange.opacity(0.05)]),
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .foregroundColor(.orange)
+                        .cornerRadius(16)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 16)
+                                .stroke(Color.orange.opacity(0.3), lineWidth: 1)
+                        )
                     }
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color.orange.opacity(0.1))
-                    .foregroundColor(.orange)
-                    .cornerRadius(12)
                 }
                 
                 if sessionManager.isOnBreak {
-                    Button("End Break Early") {
+                    Button(action: {
                         Task {
                             try? await sessionManager.endBreak()
                         }
+                    }) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "play.circle.fill")
+                                .font(.title3)
+                            
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("End Break Early")
+                                    .fontWeight(.semibold)
+                                
+                                Text("Resume focusing")
+                                    .font(.caption)
+                                    .opacity(0.8)
+                            }
+                            
+                            Spacer()
+                            
+                            Image(systemName: "arrow.right.circle.fill")
+                                .font(.title3)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 16)
+                        .padding(.horizontal, 20)
+                        .background(
+                            LinearGradient(
+                                gradient: Gradient(colors: [Color.green.opacity(0.15), Color.green.opacity(0.05)]),
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .foregroundColor(.green)
+                        .cornerRadius(16)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 16)
+                                .stroke(Color.green.opacity(0.3), lineWidth: 1)
+                        )
                     }
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color.green.opacity(0.1))
-                    .foregroundColor(.green)
-                    .cornerRadius(12)
                 }
                 
-                Button("End Session") {
+                Button(action: {
                     Task {
                         try? await sessionManager.endFocusSession()
                     }
+                }) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "stop.circle.fill")
+                            .font(.title3)
+                        
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("End Session")
+                                .fontWeight(.semibold)
+                            
+                            Text("Save progress & unlock apps")
+                                .font(.caption)
+                                .opacity(0.8)
+                        }
+                        
+                        Spacer()
+                        
+                        Image(systemName: "arrow.right.circle.fill")
+                            .font(.title3)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
+                    .padding(.horizontal, 20)
+                    .background(
+                        LinearGradient(
+                            gradient: Gradient(colors: [Color.red.opacity(0.15), Color.red.opacity(0.05)]),
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .foregroundColor(.red)
+                    .cornerRadius(16)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16)
+                            .stroke(Color.red.opacity(0.3), lineWidth: 1)
+                        )
                 }
-                .frame(maxWidth: .infinity)
-                .padding()
-                .background(Color.red.opacity(0.1))
-                .foregroundColor(.red)
-                .cornerRadius(12)
             }
         }
         .onReceive(timer) { _ in
             currentTime = Date()
         }
+        .onAppear {
+            pulseAnimation = true
+        }
+    }
+    
+    // Calculate session progress (0.0 to 1.0)
+    private var sessionProgress: Double {
+        guard let duration = sessionManager.sessionDuration,
+              let profile = sessionManager.currentProfile else {
+            return 0.0
+        }
+        
+        if sessionManager.isOnBreak {
+            // Show break progress
+            guard let breakStart = sessionManager.breakStartTime else { return 0.0 }
+            let breakElapsed = Date().timeIntervalSince(breakStart)
+            let totalBreakTime = TimeInterval(profile.breakDuration * 60)
+            return min(1.0, breakElapsed / totalBreakTime)
+        } else {
+            // Show session progress (assuming 1 hour max for visual purposes)
+            let maxDisplayTime: TimeInterval = 3600 // 1 hour
+            return min(1.0, duration / maxDisplayTime)
+        }
+    }
+    
+    private var sessionNumber: Int {
+        // This could be calculated from session history in the future
+        return 1
     }
     
     private func formatTime(_ timeInterval: TimeInterval) -> String {
