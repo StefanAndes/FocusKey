@@ -1,0 +1,182 @@
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  /* FocusKey Brand Colors */
+  --focuskey-cream: #f5f1e8;
+  --focuskey-beige: #e8dcc6;
+  --focuskey-blue-start: #7bb3d3;
+  --focuskey-blue-end: #5a9fd4;
+  --focuskey-dark-bg: #1a1f2e;
+  --focuskey-card-bg: #ffffff;
+  --focuskey-text-primary: #2c3e50;
+  --focuskey-text-secondary: #64748b;
+  --focuskey-success: #10b981;
+  --focuskey-warning: #f59e0b;
+  --focuskey-danger: #ef4444;
+
+  --font-size: 16px;
+  --background: #f8fafc;
+  --foreground: var(--focuskey-text-primary);
+  --card: var(--focuskey-card-bg);
+  --card-foreground: var(--focuskey-text-primary);
+  --popover: #ffffff;
+  --popover-foreground: var(--focuskey-text-primary);
+  --primary: var(--focuskey-blue-end);
+  --primary-foreground: #ffffff;
+  --secondary: var(--focuskey-cream);
+  --secondary-foreground: var(--focuskey-text-primary);
+  --muted: #f1f5f9;
+  --muted-foreground: var(--focuskey-text-secondary);
+  --accent: var(--focuskey-beige);
+  --accent-foreground: var(--focuskey-text-primary);
+  --destructive: var(--focuskey-danger);
+  --destructive-foreground: #ffffff;
+  --border: rgba(148, 163, 184, 0.2);
+  --input: transparent;
+  --input-background: #ffffff;
+  --switch-background: #e2e8f0;
+  --font-weight-medium: 500;
+  --font-weight-normal: 400;
+  --ring: var(--focuskey-blue-end);
+  --radius: 12px;
+}
+
+.dark {
+  --background: var(--focuskey-dark-bg);
+  --foreground: #f8fafc;
+  --card: #293548;
+  --card-foreground: #f8fafc;
+  --popover: #293548;
+  --popover-foreground: #f8fafc;
+  --primary: var(--focuskey-blue-start);
+  --primary-foreground: #ffffff;
+  --secondary: #374151;
+  --secondary-foreground: #f8fafc;
+  --muted: #374151;
+  --muted-foreground: #9ca3af;
+  --accent: #4b5563;
+  --accent-foreground: #f8fafc;
+  --border: rgba(148, 163, 184, 0.1);
+  --input: #374151;
+  --input-background: #374151;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-input-background: var(--input-background);
+  --color-switch-background: var(--switch-background);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  /* Custom FocusKey utilities */
+  --color-focuskey-cream: var(--focuskey-cream);
+  --color-focuskey-beige: var(--focuskey-beige);
+  --color-focuskey-blue-start: var(--focuskey-blue-start);
+  --color-focuskey-blue-end: var(--focuskey-blue-end);
+  --color-focuskey-success: var(--focuskey-success);
+  --color-focuskey-warning: var(--focuskey-warning);
+  --color-focuskey-danger: var(--focuskey-danger);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+  }
+}
+
+@layer base {
+  :where(:not(:has([class*=" text-"]), :not(:has([class^="text-"])))) {
+    h1 {
+      font-size: 28px;
+      font-weight: 600;
+      line-height: 1.2;
+      letter-spacing: -0.02em;
+    }
+
+    h2 {
+      font-size: 24px;
+      font-weight: 600;
+      line-height: 1.3;
+      letter-spacing: -0.01em;
+    }
+
+    h3 {
+      font-size: 20px;
+      font-weight: 600;
+      line-height: 1.4;
+    }
+
+    h4 {
+      font-size: 18px;
+      font-weight: 500;
+      line-height: 1.4;
+    }
+
+    p {
+      font-size: 16px;
+      font-weight: 400;
+      line-height: 1.5;
+    }
+
+    label {
+      font-size: 16px;
+      font-weight: 500;
+      line-height: 1.4;
+    }
+
+    button {
+      font-size: 16px;
+      font-weight: 500;
+      line-height: 1.4;
+    }
+
+    input {
+      font-size: 16px;
+      font-weight: 400;
+      line-height: 1.4;
+    }
+  }
+}
+
+html {
+  font-size: var(--font-size);
+}
+
+/* Custom FocusKey gradient utilities */
+@layer utilities {
+  .bg-focuskey-gradient {
+    background: linear-gradient(135deg, var(--focuskey-blue-start) 0%, var(--focuskey-blue-end) 100%);
+  }
+  
+  .text-focuskey-gradient {
+    background: linear-gradient(135deg, var(--focuskey-blue-start) 0%, var(--focuskey-blue-end) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+}

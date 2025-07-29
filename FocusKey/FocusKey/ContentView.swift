@@ -94,25 +94,17 @@ struct OnboardingView: View {
     let isRequesting: Bool
     
     var body: some View {
-        VStack(spacing: 30) {
+        VStack(spacing: FocusKeyDesign.Spacing.xxxl) {
             Spacer()
             
-            // App Icon and Title
-            VStack(spacing: 16) {
-                Image(systemName: "key.fill")
-                    .font(.system(size: 80))
-                    .foregroundColor(.blue)
-                
-                Text("FocusKey")
-                    .font(.largeTitle)
-                    .fontWeight(.bold)
-            }
+            // FocusKey Logo
+            FocusKeyLogo(variant: .blue, size: .large)
             
             // Description
-            VStack(spacing: 20) {
+            VStack(spacing: FocusKeyDesign.Spacing.xl) {
                 Text("Focus with Purpose")
-                    .font(.title2)
-                    .fontWeight(.semibold)
+                    .font(FocusKeyDesign.Typography.h2)
+                    .foregroundColor(FocusKeyDesign.Colors.textPrimary)
                 
                 VStack(alignment: .leading, spacing: 12) {
                     FeatureRow(
@@ -146,8 +138,8 @@ struct OnboardingView: View {
             // Authorization Request
             VStack(spacing: 16) {
                 Text("FocusKey uses Apple's Screen Time features to block distractions. You'll be asked to allow this.")
-                    .font(.footnote)
-                    .foregroundColor(.secondary)
+                    .font(FocusKeyDesign.Typography.caption)
+                    .foregroundColor(FocusKeyDesign.Colors.textSecondary)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal)
                 
@@ -156,15 +148,13 @@ struct OnboardingView: View {
                         if isRequesting {
                             ProgressView()
                                 .scaleEffect(0.8)
+                                .tint(.white)
                         }
                         Text(isRequesting ? "Requesting Permission..." : "Enable FocusKey")
                     }
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color.blue)
-                    .foregroundColor(.white)
-                    .cornerRadius(12)
                 }
+                .buttonStyle(FocusKeyButtonStyle(variant: .primary, size: .large))
+                .frame(maxWidth: .infinity)
                 .disabled(isRequesting)
                 .padding(.horizontal)
             }
